@@ -597,34 +597,21 @@ const Viewer = (function () {
         data: buf,
         cMapUrl: 'js/vendor/pdfjs/cmaps/', cMapPacked: true,
         standardFontDataUrl: 'js/vendor/pdfjs/standard_fonts/',
-        // ROOT CAUSE FIX for garbled/disconnected Arabic glyphs:
-        // With disableFontFace:false, pdf.js registers the embedded font via
-        // a native @font-face and paints text by handing raw Unicode strings
-        // to the browser's own text shaper (Chromium/HarfBuzz), which
-        // *re-shapes* the text — recomputing Arabic letter joining
-        // (initial/medial/final forms) and ligatures from scratch using the
-        // font's cmap/GSUB tables. Many real-world Arabic PDFs — especially
-        // ones produced by older Arabic DTP tools, government software, or
-        // heavily-subsetted exporters — embed fonts with incomplete or
-        // non-standard cmap/GSUB tables (sometimes keyed off PUA codepoints)
-        // that are meaningless to a generic re-shaper. HarfBuzz then fails
-        // to join the letters at all, producing exactly the reported
-        // symptoms: isolated/disconnected letters, overlapping glyphs, and
-        // "unreadable" text — even though the same PDF opens fine in Adobe
-        // Acrobat, because Acrobat's engine paints the *exact* glyph already
-        // selected by the authoring app (via glyph ID in the content
-        // stream) instead of re-shaping Unicode text.
-        //
-        // disableFontFace:true switches pdf.js to its own built-in glyph
-        // renderer, which paints each glyph by the exact glyph ID the PDF
-        // content stream specifies (matching how Acrobat renders), so no
-        // re-shaping ever happens and already-embedded joining/ligatures are
-        // preserved byte-for-byte. This fixes embedded-font Arabic text
-        // (the overwhelming majority of real Arabic PDFs) at the cost of a
-        // small amount of extra CPU per glyph and losing native OS font
-        // rendering for the rare *non-embedded* font case — an acceptable
-        // trade-off since correctness for embedded fonts is the reported bug.
-        disableFontFace: true,
+        // NOTE: disableFontFace was previously forced to `true` as a
+        // hypothesis-driven fix for garbled Arabic text in a small set of
+        // PDFs. That was never verified against an actual failing file —
+        // only screenshots — and it caused a real regression (missing
+        // numbers/symbols in other PDFs), because forcing pdf.js's
+        // internal glyph-path renderer for *every* font overrides pdf.js's
+        // own per-font fallback heuristics, which are more broadly tested
+        // than a single global override (this is also the default used by
+        // Firefox's built-in PDF viewer across huge numbers of real-world
+        // Arabic/RTL documents daily). Reverted to the default/false here
+        // to restore that broader compatibility. See PDF-RENDERING-NOTES.md
+        // at the project root for the outstanding Arabic-rendering
+        // investigation and what's needed to close it out with evidence
+        // instead of another guess.
+        disableFontFace: false,
         useSystemFonts: true,
         fontExtraProperties: true,
         isEvalSupported: true,

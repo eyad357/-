@@ -83,11 +83,10 @@ const Thumbnails = (function () {
       url,
       cMapUrl: 'js/vendor/pdfjs/cmaps/', cMapPacked: true,
       standardFontDataUrl: 'js/vendor/pdfjs/standard_fonts/',
-      // See app/js/viewer.js renderPdf() for the full explanation — paints
-      // exact glyph IDs from the content stream instead of letting the
-      // browser re-shape Unicode text, which is what garbles Arabic glyphs
-      // from fonts with incomplete/non-standard cmap or GSUB tables.
-      disableFontFace: true,
+      // See app/js/viewer.js renderPdf() — reverted from a forced
+      // disableFontFace:true, which caused missing numbers/symbols in
+      // other PDFs. See PDF-RENDERING-NOTES.md for the open investigation.
+      disableFontFace: false,
       useSystemFonts: true,
       fontExtraProperties: true,
       isEvalSupported: true,
