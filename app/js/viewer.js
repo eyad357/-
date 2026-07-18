@@ -597,12 +597,34 @@ const Viewer = (function () {
         data: buf,
         cMapUrl: 'js/vendor/pdfjs/cmaps/', cMapPacked: true,
         standardFontDataUrl: 'js/vendor/pdfjs/standard_fonts/',
-        // Keep embedded fonts (the norm for Arabic PDFs, since Arabic text
-        // relies on the exact embedded glyph shaping/joining) rendering via
-        // real font faces rather than a generic fallback, and preserve
-        // extra font metadata that improves fidelity for complex/rare font
-        // programs — this is what most often fixes garbled RTL text.
-        disableFontFace: false,
+        // ROOT CAUSE FIX for garbled/disconnected Arabic glyphs:
+        // With disableFontFace:false, pdf.js registers the embedded font via
+        // a native @font-face and paints text by handing raw Unicode strings
+        // to the browser's own text shaper (Chromium/HarfBuzz), which
+        // *re-shapes* the text — recomputing Arabic letter joining
+        // (initial/medial/final forms) and ligatures from scratch using the
+        // font's cmap/GSUB tables. Many real-world Arabic PDFs — especially
+        // ones produced by older Arabic DTP tools, government software, or
+        // heavily-subsetted exporters — embed fonts with incomplete or
+        // non-standard cmap/GSUB tables (sometimes keyed off PUA codepoints)
+        // that are meaningless to a generic re-shaper. HarfBuzz then fails
+        // to join the letters at all, producing exactly the reported
+        // symptoms: isolated/disconnected letters, overlapping glyphs, and
+        // "unreadable" text — even though the same PDF opens fine in Adobe
+        // Acrobat, because Acrobat's engine paints the *exact* glyph already
+        // selected by the authoring app (via glyph ID in the content
+        // stream) instead of re-shaping Unicode text.
+        //
+        // disableFontFace:true switches pdf.js to its own built-in glyph
+        // renderer, which paints each glyph by the exact glyph ID the PDF
+        // content stream specifies (matching how Acrobat renders), so no
+        // re-shaping ever happens and already-embedded joining/ligatures are
+        // preserved byte-for-byte. This fixes embedded-font Arabic text
+        // (the overwhelming majority of real Arabic PDFs) at the cost of a
+        // small amount of extra CPU per glyph and losing native OS font
+        // rendering for the rare *non-embedded* font case — an acceptable
+        // trade-off since correctness for embedded fonts is the reported bug.
+        disableFontFace: true,
         useSystemFonts: true,
         fontExtraProperties: true,
         isEvalSupported: true,
