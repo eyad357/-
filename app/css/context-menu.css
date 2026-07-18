@@ -1,0 +1,23 @@
+/* ════════════════════════════════════════════════════════════
+   RIGHT-CLICK CONTEXT MENU — Part 2 remainder
+   Additive stylesheet, reuses existing app CSS variables.
+   ════════════════════════════════════════════════════════════ */
+
+.cm-menu{
+  position:fixed; z-index:6000; min-width:190px;
+  background:var(--card); border:1px solid var(--bdr); border-radius:10px;
+  box-shadow:0 10px 32px rgba(0,0,0,.28); padding:6px; display:none;
+  font-family:'Tajawal',sans-serif; direction:rtl;
+}
+.cm-menu.open{ display:block; animation:cmPop .12s ease-out; }
+@keyframes cmPop{ from{ opacity:0; transform:scale(.96) } to{ opacity:1; transform:scale(1) } }
+
+.cm-item{
+  display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:7px; cursor:pointer;
+  font-size:.8rem; font-weight:600; color:var(--text);
+}
+.cm-item:hover{ background:var(--surf); }
+.cm-item-danger{ color:#c62828; }
+.cm-item-danger:hover{ background:rgba(198,40,40,.08); }
+.cm-icon{ width:18px; text-align:center; flex:0 0 auto; }
+.cm-sep{ height:1px; background:var(--bdr); margin:5px 4px; }

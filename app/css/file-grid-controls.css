@@ -1,0 +1,31 @@
+/* ════════════════════════════════════════════════════════════
+   FILE GRID CONTROLS — Search / Sort / Filter — Part 2 remainder
+   Additive stylesheet, reuses existing app CSS variables.
+   ════════════════════════════════════════════════════════════ */
+
+.fgc-toolbar{ margin:0 0 10px; }
+.fgc-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+.fgc-search{
+  flex:1 1 260px; background:var(--card); border:1px solid var(--bdr); border-radius:8px;
+  padding:7px 12px; font-family:'Tajawal',sans-serif; font-size:.78rem; color:var(--text); outline:none;
+}
+.fgc-search:focus{ border-color:var(--primary); }
+.fgc-select{
+  background:var(--card); border:1px solid var(--bdr); border-radius:8px; padding:6px 10px;
+  font-family:'Tajawal',sans-serif; font-size:.76rem; color:var(--text);
+}
+.fgc-dir-btn{
+  background:var(--surf); border:1px solid var(--bdr); border-radius:8px; padding:6px 12px;
+  font-family:'Tajawal',sans-serif; font-size:.74rem; font-weight:700; color:var(--text); cursor:pointer; white-space:nowrap;
+}
+.fgc-dir-btn:hover{ background:var(--card); }
+.fgc-result-count{ font-size:.72rem; color:var(--muted); font-weight:700; white-space:nowrap; margin-inline-start:auto; }
+
+.fgc-chips{ display:flex; gap:6px; flex-wrap:wrap; }
+.fgc-chip{
+  background:var(--card); border:1px solid var(--bdr); border-radius:20px; padding:4px 12px;
+  font-size:.7rem; font-weight:700; font-family:'Tajawal',sans-serif; color:var(--text); cursor:pointer;
+  transition:background .12s, color .12s, border-color .12s;
+}
+.fgc-chip:hover{ border-color:var(--primary); }
+.fgc-chip.active{ background:var(--primary); border-color:var(--primary); color:#fff; }

@@ -1,0 +1,36 @@
+/* ════════════════════════════════════════════════════════════
+   PER-INDICATOR STATISTICS + RECENT FILES — Phase 1.5 / Part 2
+   Additive stylesheet, reuses existing app CSS variables.
+   ════════════════════════════════════════════════════════════ */
+
+.ie-stats-bar{
+  display:flex; align-items:center; flex-wrap:wrap; gap:14px;
+  background:var(--surf); border:1px solid var(--bdr); border-radius:10px;
+  padding:10px 16px; margin:0 0 12px;
+}
+.ie-stats-bar[hidden]{ display:none; }
+.ie-stat{ display:flex; flex-direction:column; align-items:center; min-width:64px; }
+.ie-stat-num{ font-weight:800; font-size:.92rem; color:var(--primary); }
+.ie-stat-label{ font-size:.64rem; color:var(--muted); font-weight:600; }
+.ie-dist{ display:flex; gap:6px; flex-wrap:wrap; margin-inline-start:auto; }
+.ie-chip{
+  background:var(--card); border:1px solid var(--bdr); border-radius:20px; padding:3px 10px;
+  font-size:.7rem; font-weight:700; color:var(--text);
+}
+
+.ie-recent-panel{
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;
+  background:var(--surf); border:1px solid var(--bdr); border-radius:10px; padding:12px 16px; margin:0 0 14px;
+}
+.ie-recent-panel[hidden]{ display:none; }
+.ie-recent-col-title{ font-size:.72rem; font-weight:800; color:var(--primary); margin-bottom:6px; }
+.ie-recent-row{ display:flex; align-items:center; gap:6px; padding:4px 0; font-size:.74rem; }
+.ie-recent-icon{ flex:0 0 auto; }
+.ie-recent-name{ flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font-weight:600; }
+.ie-recent-when{ flex:0 0 auto; color:var(--muted); font-size:.66rem; }
+.ie-recent-empty{ color:var(--muted); font-size:.7rem; font-style:italic; padding:4px 0; }
+
+@media (max-width: 760px){
+  .ie-recent-panel{ grid-template-columns:1fr; }
+  .ie-dist{ margin-inline-start:0; width:100%; }
+}

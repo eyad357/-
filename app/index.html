@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>التقويم والاعتماد المدرسي</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<!-- Phase 1.5: Professional Document Viewer styles (additive, separate file) -->
+<link rel="stylesheet" href="css/viewer.css">
+<!-- Phase 1.5 Part 2: Upload tray styles (additive) -->
+<link rel="stylesheet" href="css/uploader.css">
+<!-- Phase 1.5 Part 2 (remainder): thumbnails, context menu, dialogs -->
+<link rel="stylesheet" href="css/thumbnails.css">
+<link rel="stylesheet" href="css/context-menu.css">
+<link rel="stylesheet" href="css/dialogs.css">
+<style>
+:root {
+  --primary:#0a3d6b; --pl:#1a6fad; --accent:#d4a017;
+  --surf:#f4f7fb; --card:#fff; --text:#1a2332; --muted:#6b7a8d; --bdr:#dde3ec;
+  --d1:#1565C0; --d2:#6A1B9A; --d3:#2E7D32; --d4:#C62828;
+  --radius:14px; --shadow:0 2px 12px rgba(10,61,107,.08);
+  --success:#2e7d32; --danger:#c62828; --warn:#e65100;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Tajawal',sans-serif;background:var(--surf);color:var(--text);direction:rtl;min-height:100vh}
+
+/* ── SETUP WIZARD OVERLAY ─────────────────────────────────── */
+#setup-overlay{position:fixed;inset:0;background:rgba(10,40,80,.97);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px}
+#setup-overlay.show{display:flex}
+.setup-box{background:#fff;border-radius:20px;max-width:560px;width:100%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.setup-header{background:linear-gradient(135deg,var(--primary),var(--pl));padding:28px 32px;color:#fff;text-align:center}
+.setup-header h2{font-size:1.3rem;font-weight:800;margin-bottom:6px}
+.setup-header p{font-size:.82rem;opacity:.85}
+.setup-body{padding:28px 32px}
+.setup-field{margin-bottom:18px}
+.setup-field label{display:block;font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:6px}
+.setup-field input,.setup-field select{width:100%;border:1.5px solid var(--bdr);border-radius:10px;padding:10px 14px;font-family:'Tajawal',sans-serif;font-size:.88rem;color:var(--text);background:var(--surf);outline:none;transition:all .2s}
+.setup-field input:focus,.setup-field select:focus{border-color:var(--pl);background:#fff;box-shadow:0 0 0 3px rgba(26,111,173,.1)}
+.setup-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.setup-footer{padding:0 32px 28px;display:flex;gap:10px;justify-content:flex-end}
+.btn-setup{background:var(--primary);color:#fff;border:none;padding:11px 28px;border-radius:10px;font-family:'Tajawal',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .2s}
+.btn-setup:hover{background:var(--pl)}
+
+/* ── LICENSE OVERLAY ──────────────────────────────────────── */
+#license-overlay{position:fixed;inset:0;background:rgba(198,40,40,.96);z-index:9998;display:none;align-items:center;justify-content:center;padding:20px}
+#license-overlay.show{display:flex}
+.license-box{background:#fff;border-radius:20px;max-width:500px;width:100%;padding:36px;text-align:center}
+.license-icon{font-size:3rem;margin-bottom:16px}
+.license-title{font-size:1.2rem;font-weight:800;color:var(--danger);margin-bottom:10px}
+.license-msg{font-size:.85rem;color:var(--muted);line-height:1.7;margin-bottom:24px}
+.license-key-input{width:100%;border:2px solid var(--bdr);border-radius:10px;padding:12px;font-family:monospace;font-size:1rem;text-align:center;margin-bottom:8px;outline:none}
+.license-machine{font-size:.7rem;color:var(--muted);margin-bottom:16px;word-break:break-all}
+.license-activate-btn{width:100%;background:var(--primary);color:#fff;border:none;padding:12px;border-radius:10px;font-family:'Tajawal',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer}
+
+/* ── HEADER ───────────────────────────────────────────────── */
+.hdr{background:linear-gradient(135deg,var(--primary) 0%,#0d5fa8 55%,var(--pl) 100%);position:sticky;top:0;z-index:200;box-shadow:0 4px 20px rgba(10,61,107,.35)}
+.hdr-logos{background:rgba(255,255,255,.97);border-bottom:3px solid var(--accent);padding:8px 28px;display:flex;align-items:center;justify-content:space-between;min-height:64px}
+.logo-slot{width:52px;height:52px;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--surf);border:1.5px dashed var(--bdr);cursor:pointer;transition:all .2s;position:relative}
+.logo-slot:hover{border-color:var(--pl);background:#e8f0fe}
+.logo-slot img{width:100%;height:100%;object-fit:contain;image-rendering:-webkit-optimize-contrast}
+.logo-slot.has-logo{border-style:solid;border-color:var(--bdr);background:#fff}
+.logo-slot.has-logo:hover{border-color:var(--pl)}
+.logo-slot-label{font-size:.55rem;color:var(--muted);text-align:center;padding:4px}
+.hdr-center-info{text-align:center;flex:1;padding:0 16px}
+.hdr-school-name{font-size:.95rem;font-weight:800;color:var(--primary)}
+.hdr-school-sub{font-size:.68rem;color:var(--muted);margin-top:2px}
+.hdr-main{padding:12px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.hdr-title{color:#fff}.hdr-title h1{font-size:1.2rem;font-weight:800}.hdr-title p{font-size:.74rem;opacity:.8;margin-top:2px}
+.badge{background:var(--accent);color:#1a1000;font-size:.68rem;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap}
+
+/* ── TYPE BAR ─────────────────────────────────────────────── */
+.type-bar{background:#fff;border-bottom:1px solid var(--bdr);padding:8px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.type-bar label{font-size:.8rem;font-weight:700;color:var(--muted)}
+.tog{display:flex;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;overflow:hidden}
+.tog-btn{padding:6px 18px;font-size:.8rem;font-weight:700;font-family:'Tajawal',sans-serif;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
+.tog-btn.on{background:var(--primary);color:#fff}
+.api-status{margin-right:auto;display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:700}
+.api-dot{width:8px;height:8px;border-radius:50%;background:#ccc}
+.api-dot.ok{background:#4caf50}.api-dot.err{background:#f44336}.api-dot.loading{background:var(--accent)}
+
+/* ── LAYOUT ───────────────────────────────────────────────── */
+.wrap{max-width:1260px;margin:0 auto;padding:20px 16px;display:grid;grid-template-columns:248px 1fr;gap:20px;align-items:start}
+
+/* ── SIDEBAR ──────────────────────────────────────────────── */
+.side{position:sticky;top:130px;background:var(--card);border-radius:var(--radius);border:1px solid var(--bdr);overflow:hidden;box-shadow:var(--shadow)}
+.side-hdr{padding:10px 14px;font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--bdr);background:var(--surf)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--bdr);transition:background .15s}
+.nav-item:last-of-type{border-bottom:none}
+.nav-item:hover{background:var(--surf)}
+.nav-item.active{background:#e8f0fe;border-right:3px solid var(--primary)}
+.nav-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.nav-txt{flex:1}.nav-name{font-size:.82rem;font-weight:700}.nav-sub{font-size:.67rem;color:var(--muted);margin-top:1px}
+.side-actions{padding:12px;border-top:1px solid var(--bdr);background:var(--surf);display:flex;flex-direction:column;gap:7px}
+.btn-primary{width:100%;background:var(--primary);color:#fff;border:none;padding:9px 14px;border-radius:8px;font-family:'Tajawal',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:background .2s}
+.btn-primary:hover{background:var(--pl)}
+.btn-outline{width:100%;background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:8px 14px;border-radius:8px;font-family:'Tajawal',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-outline:hover{background:var(--surf)}
+.btn-sm{padding:5px 12px;font-size:.75rem;border-radius:6px;font-family:'Tajawal',sans-serif;font-weight:700;cursor:pointer;transition:all .2s;border:none}
+.btn-sm.danger{background:#ffebee;color:var(--danger);border:1px solid #ffcdd2}
+.btn-sm.danger:hover{background:#ffcdd2}
+.btn-sm.success{background:#e8f5e9;color:var(--success);border:1px solid #c8e6c9}
+
+/* ── SETTINGS PAGE ────────────────────────────────────────── */
+.settings-view{display:none}
+.settings-view.active{display:block}
+.settings-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--bdr);padding:22px 26px;box-shadow:var(--shadow);margin-bottom:16px}
+.settings-card-title{font-size:.9rem;font-weight:800;color:var(--primary);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px}
+.settings-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.settings-field label{display:block;font-size:.74rem;font-weight:700;color:var(--muted);margin-bottom:5px}
+.settings-field input,.settings-field select{width:100%;border:1.5px solid var(--bdr);border-radius:8px;padding:9px 12px;font-family:'Tajawal',sans-serif;font-size:.85rem;color:var(--text);background:var(--surf);outline:none;transition:all .2s}
+.settings-field input:focus,.settings-field select:focus{border-color:var(--pl);background:#fff}
+.logo-upload-area{border:2px dashed var(--bdr);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.logo-upload-area:hover{border-color:var(--pl);background:#f0f4ff}
+.logo-upload-area.has-logo{border-style:solid;background:#fff}
+.logo-upload-area.has-logo:hover{border-color:var(--pl);background:#fff}
+.logo-upload-area img{display:block;max-width:100%;max-height:180px;width:auto;height:auto;object-fit:contain;margin-bottom:8px}
+.logo-upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.logo-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* ── AUDIT LOG PAGE ───────────────────────────────────────── */
+.audit-view{display:none}
+.audit-view.active{display:block}
+.audit-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.audit-table th{background:var(--surf);padding:9px 12px;text-align:right;font-weight:700;color:var(--muted);border-bottom:2px solid var(--bdr)}
+.audit-table td{padding:9px 12px;border-bottom:1px solid var(--bdr)}
+.audit-table tr:hover td{background:#f8faff}
+.audit-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:700}
+.audit-badge.upload{background:#e8f5e9;color:var(--success)}
+.audit-badge.delete{background:#ffebee;color:var(--danger)}
+.audit-badge.settings{background:#e3f2fd;color:var(--d1)}
+.audit-badge.backup{background:#fff8e1;color:#f57f17}
+.audit-badge.license{background:#f3e5f5;color:var(--d2)}
+.audit-badge.default{background:var(--surf);color:var(--muted)}
+.audit-pagination{display:flex;align-items:center;gap:8px;padding:12px 0;font-size:.8rem}
+.audit-pagination button{padding:5px 12px;border-radius:6px;border:1px solid var(--bdr);background:#fff;cursor:pointer;font-family:'Tajawal',sans-serif;font-size:.78rem}
+.audit-pagination button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+/* ── BACKUP PAGE ──────────────────────────────────────────── */
+.backup-view{display:none}
+.backup-view.active{display:block}
+.backup-list{display:flex;flex-direction:column;gap:8px}
+.backup-item{background:#fff;border:1px solid var(--bdr);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.backup-item-icon{font-size:1.4rem}
+.backup-item-info{flex:1}
+.backup-item-name{font-size:.82rem;font-weight:700}
+.backup-item-meta{font-size:.7rem;color:var(--muted);margin-top:2px}
+.backup-item-actions{display:flex;gap:6px}
+
+/* ── INFO CARD ────────────────────────────────────────────── */
+.info-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--bdr);padding:18px 22px;box-shadow:var(--shadow)}
+.info-card-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bdr)}
+.info-card-icon{width:38px;height:38px;border-radius:9px;background:#e8f0fe;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.info-card-title{font-size:.92rem;font-weight:800;color:var(--primary)}.info-card-sub{font-size:.7rem;color:var(--muted);margin-top:2px}
+.info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.info-field label{display:block;font-size:.68rem;font-weight:700;color:var(--muted);margin-bottom:4px}
+.info-field input,.info-field select{width:100%;border:1.5px solid var(--bdr);border-radius:7px;padding:7px 10px;font-family:'Tajawal',sans-serif;font-size:.8rem;color:var(--text);background:var(--surf);outline:none;transition:all .2s}
+.info-field input:focus,.info-field select:focus{border-color:var(--pl);background:#fff}
+
+/* ── HOME DASHBOARD ───────────────────────────────────────── */
+.home-view{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.stat-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--bdr);padding:16px;box-shadow:var(--shadow);text-align:center}
+.stat-card-num{font-size:1.8rem;font-weight:800;color:var(--primary)}
+.stat-card-label{font-size:.72rem;color:var(--muted);margin-top:4px;font-weight:600}
+.stat-card.green .stat-card-num{color:var(--success)}
+.stat-card.purple .stat-card-num{color:var(--d2)}
+.stat-card.red .stat-card-num{color:var(--danger)}
+.stat-progress{margin-top:10px;background:var(--bdr);border-radius:4px;height:5px;overflow:hidden}
+.stat-progress-bar{height:100%;background:linear-gradient(90deg,var(--pl),var(--accent));border-radius:4px;transition:width .4s}
+
+/* ── PROGRESS RINGS (completion engine) ───────────────────── */
+.ring-wrap{position:relative;width:84px;height:84px;margin:2px auto 6px}
+.ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg);display:block}
+.ring-wrap circle{fill:none;stroke-width:9}
+.ring-bg{stroke:var(--bdr)}
+.ring-fg{stroke:var(--pl);stroke-linecap:round;transition:stroke-dashoffset .7s ease,stroke .3s ease}
+.ring-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05rem;color:var(--text)}
+
+.ring-mini-wrap{position:relative;width:38px;height:38px;flex-shrink:0;margin-inline-start:auto}
+.ring-mini-wrap svg{width:100%;height:100%;transform:rotate(-90deg);display:block}
+.ring-mini-wrap circle{fill:none;stroke-width:9}
+.ring-mini-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.56rem;color:var(--text)}
+
+.accred-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--bdr);box-shadow:var(--shadow);padding:20px;display:flex;align-items:center;gap:20px}
+.accred-ring-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
+.accred-ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg);display:block}
+.accred-ring-wrap circle{fill:none;stroke-width:9}
+.accred-percent{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.4rem;color:var(--text)}
+.accred-body{flex:1;min-width:0}
+.accred-title{font-size:.98rem;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.accred-status{display:inline-block;font-size:.76rem;font-weight:700;padding:3px 12px;border-radius:20px;margin-bottom:6px}
+.accred-status.excellent,.accred-status.verygood{background:#e8f5e9;color:var(--success)}
+.accred-status.good{background:#fff8e1;color:#8d6e00}
+.accred-status.needsattention{background:#fff3e0;color:var(--warn)}
+.accred-status.beginning{background:#ffebee;color:var(--danger)}
+.accred-desc{font-size:.8rem;color:var(--muted);line-height:1.6}
+@media (max-width:640px){.accred-card{flex-direction:column;text-align:center}}
+.home-header{background:var(--card);border-radius:var(--radius);border:1px solid var(--bdr);padding:20px 24px;box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.home-header-icon{width:52px;height:52px;border-radius:13px;background:linear-gradient(135deg,var(--primary),var(--pl));display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0}
+.home-header-title{font-size:1.05rem;font-weight:800;color:var(--primary)}.home-header-sub{font-size:.78rem;color:var(--muted);margin-top:3px}
+.domains-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.domain-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--bdr);padding:18px 20px;box-shadow:var(--shadow);cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.domain-card::before{content:'';position:absolute;top:0;right:0;width:4px;height:100%;background:var(--dc,#ccc)}
+.domain-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(10,61,107,.12)}
+.domain-card-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.domain-card-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.domain-card-name{font-size:.9rem;font-weight:800;line-height:1.3}
+.domain-card-desc{font-size:.73rem;color:var(--muted);line-height:1.6}
+.domain-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:10px;border-top:1px solid var(--bdr)}
+.domain-card-meta{font-size:.7rem;color:var(--muted);font-weight:600}
+.domain-card-arrow{font-size:.82rem;color:var(--pl);font-weight:700;background:#e8f0fe;padding:3px 9px;border-radius:6px}
+.recent-files-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--bdr);padding:16px 20px;box-shadow:var(--shadow);margin-top:14px}
+.recent-files-title{font-size:.82rem;font-weight:700;color:var(--primary);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.recent-file-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bdr);font-size:.76rem}
+.recent-file-item:last-child{border-bottom:none}
+.recent-file-code{background:#e8f0fe;color:var(--primary);padding:2px 7px;border-radius:6px;font-size:.65rem;font-weight:700;font-family:monospace;flex-shrink:0}
+.recent-file-name{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recent-file-date{color:var(--muted);font-size:.68rem;flex-shrink:0}
+
+/* ── DOMAIN VIEW ──────────────────────────────────────────── */
+.domain-view{display:none}.domain-view.active{display:block}
+.domain-view-header{background:var(--card);border-radius:var(--radius);border:1px solid var(--bdr);box-shadow:var(--shadow);overflow:hidden}
+.domain-view-banner{padding:20px 24px;display:flex;align-items:center;gap:14px}
+.domain-view-icon{width:50px;height:50px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.domain-view-title{font-size:1rem;font-weight:800}.domain-view-desc{font-size:.76rem;opacity:.8;margin-top:3px;line-height:1.6}
+.domain-view-breadcrumb{padding:8px 24px;border-top:1px solid rgba(255,255,255,.2);display:flex;align-items:center;gap:6px;font-size:.74rem}
+.breadcrumb-back{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:inherit;padding:3px 12px;border-radius:20px;cursor:pointer;font-family:'Tajawal',sans-serif;font-size:.74rem;font-weight:600;transition:background .2s;display:flex;align-items:center;gap:4px}
+.breadcrumb-back:hover{background:rgba(255,255,255,.25)}
+.standards-list{display:flex;flex-direction:column;gap:11px;margin-top:13px}
+.std-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--bdr);box-shadow:var(--shadow);overflow:hidden}
+.std-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;cursor:pointer;user-select:none;transition:background .15s}
+.std-card-hdr:hover{background:#fafbfd}.std-card-hdr.open{background:#f0f4ff}
+.std-card-hdr-l{display:flex;align-items:center;gap:9px}
+.std-badge{font-size:.63rem;font-family:monospace;color:#fff;padding:3px 8px;border-radius:6px;white-space:nowrap;font-weight:700}
+.std-card-name{font-size:.88rem;font-weight:700}
+.std-card-hdr-r{display:flex;align-items:center;gap:7px}
+.std-ind-count{font-size:.7rem;color:var(--muted);font-weight:600}
+.std-chev{font-size:.78rem;color:var(--muted);transition:transform .25s;display:inline-block}
+.inds-panel{display:none;border-top:1px solid var(--bdr)}.inds-panel.open{display:block}
+.ind-row{padding:13px 18px;border-bottom:1px solid var(--bdr);transition:background .15s}
+.ind-row:last-child{border-bottom:none}.ind-row:hover{background:#f8faff}
+.ind-row.priv{background:#fffbf0}.ind-row.hidden-ind{display:none}
+.ind-top{display:flex;align-items:flex-start;gap:9px;margin-bottom:9px}
+.ind-code{font-size:.61rem;font-family:monospace;color:#fff;padding:3px 6px;border-radius:5px;white-space:nowrap;margin-top:2px;flex-shrink:0;font-weight:700}
+.ind-text{font-size:.84rem;line-height:1.65}
+.ptag{display:inline-block;font-size:.59rem;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;padding:1px 5px;border-radius:4px;margin-left:5px;font-weight:700;vertical-align:middle}
+
+/* ── EVIDENCE ─────────────────────────────────────────────── */
+.evidence-section{border:1px solid var(--bdr);border-radius:9px;background:var(--surf);overflow:hidden}
+.evidence-header{display:flex;align-items:center;justify-content:space-between;padding:8px 13px;background:#fff;border-bottom:1px solid var(--bdr)}
+.evidence-title{font-size:.72rem;font-weight:700;color:var(--primary);display:flex;align-items:center;gap:5px}
+.evidence-actions{display:flex;gap:5px;align-items:center}
+.ev-btn{border:none;border-radius:6px;padding:5px 9px;font-family:'Tajawal',sans-serif;font-size:.7rem;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:3px}
+.ev-btn-upload{background:var(--primary);color:#fff}.ev-btn-upload:hover{background:var(--pl)}
+.evidence-drop-zone{position:relative;border-radius:0 0 10px 10px}
+.evidence-drop-zone.dragover .evidence-body{opacity:.3;pointer-events:none}
+.drop-overlay{display:none;position:absolute;inset:0;background:rgba(26,111,173,.92);color:#fff;font-size:1rem;font-weight:800;align-items:center;justify-content:center;border-radius:0 0 10px 10px;border:3px dashed rgba(255,255,255,.7)}
+.evidence-drop-zone.dragover .drop-overlay{display:flex}
+.ev-btn-refresh{background:var(--surf);color:var(--muted);border:1px solid var(--bdr)}.ev-btn-refresh:hover{background:#eee}
+.evidence-body{padding:9px}
+.evidence-loading{text-align:center;padding:14px;color:var(--muted);font-size:.76rem}
+.evidence-empty{text-align:center;padding:18px 12px;color:var(--muted)}
+.evidence-empty-icon{font-size:1.6rem;margin-bottom:5px}
+.evidence-empty-text{font-size:.76rem;line-height:1.5}
+.file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:7px}
+.file-card{background:#fff;border:1px solid var(--bdr);border-radius:7px;padding:9px;cursor:pointer;transition:all .15s;position:relative;text-align:center}
+.file-card:hover{border-color:var(--pl);box-shadow:0 2px 8px rgba(10,61,107,.1);transform:translateY(-1px)}
+.file-card-thumb{width:100%;height:64px;border-radius:4px;object-fit:cover;margin-bottom:5px}
+.file-card-icon{width:100%;height:64px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin-bottom:5px}
+.file-card-icon.pdf-bg{background:#fff5f5}.file-card-icon.word-bg{background:#f0f4ff}.file-card-icon.excel-bg{background:#f0fff4}.file-card-icon.ppt-bg{background:#fff8f0}.file-card-icon.zip-bg{background:#f5f5f5}.file-card-icon.text-bg{background:#f9f9f9}.file-card-icon.file-bg{background:#f5f0ff}
+.file-card-name{font-size:.64rem;font-weight:700;word-break:break-word;line-height:1.3;margin-bottom:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.file-card-meta{font-size:.58rem;color:var(--muted)}
+.file-card-del{position:absolute;top:3px;left:3px;background:rgba(255,255,255,.92);border:1px solid #ffcdd2;border-radius:4px;width:18px;height:18px;display:none;align-items:center;justify-content:center;font-size:.62rem;cursor:pointer;color:#c62828}
+.file-card:hover .file-card-del{display:flex}
+.file-count-badge{background:#e8f0fe;color:var(--primary);padding:1px 7px;border-radius:10px;font-size:.62rem;font-weight:700}
+.no-folder-note{font-size:.68rem;color:#b71c1c;background:#ffebee;border:1px solid #ffcdd2;border-radius:6px;padding:5px 9px;text-align:center}
+.integrity-alert{background:#fff3e0;border:1px solid #ffcc80;border-radius:8px;padding:10px 14px;font-size:.78rem;color:#e65100;margin-bottom:12px}
+.integrity-alert strong{display:block;margin-bottom:4px}
+
+/* ── MODAL ────────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:15px;max-width:90vw;max-height:90vh;overflow:auto;position:relative;min-width:300px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--bdr);position:sticky;top:0;background:#fff;z-index:2}
+.modal-title{font-size:.88rem;font-weight:800;color:var(--primary)}
+.modal-close{background:var(--surf);border:1px solid var(--bdr);border-radius:7px;padding:4px 10px;cursor:pointer;font-family:'Tajawal',sans-serif;font-size:.78rem;font-weight:700}
+.modal-body{padding:14px;text-align:center}
+.modal-body img{max-width:100%;max-height:70vh;border-radius:7px}
+.modal-body iframe{width:700px;max-width:84vw;height:70vh;border:none;border-radius:7px}
+.modal-actions{padding:10px 18px;border-top:1px solid var(--bdr);display:flex;gap:7px;justify-content:flex-end}
+.modal-dl{background:var(--primary);color:#fff;border:none;padding:7px 16px;border-radius:7px;font-family:'Tajawal',sans-serif;font-size:.8rem;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+
+/* ── TOAST ────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(70px);background:#1a2332;color:#fff;padding:11px 22px;border-radius:9px;font-size:.82rem;font-weight:600;z-index:9999;opacity:0;transition:all .3s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.success{background:#2e7d32}
+.toast.error{background:#c62828}
+
+/* ── RESPONSIVE ───────────────────────────────────────────── */
+@media(max-width:900px){.wrap{grid-template-columns:1fr}.side{position:static}.info-grid{grid-template-columns:1fr 1fr}.domains-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}.settings-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.info-grid{grid-template-columns:1fr}.file-grid{grid-template-columns:repeat(auto-fill,minmax(95px,1fr))}.stats-grid{grid-template-columns:1fr 1fr}.logo-grid{grid-template-columns:1fr}}
+@media print{.hdr{position:static}.side,.type-bar,.btn-primary,.btn-outline,.ev-btn,.modal-overlay,#setup-overlay,#license-overlay{display:none!important}.wrap{grid-template-columns:1fr}.inds-panel,.home-view{display:block!important}.domain-view{display:block!important}}
+</style>
+</head>
+<body>
+
+<!-- SETUP WIZARD OVERLAY -->
+<div id="setup-overlay">
+  <div class="setup-box">
+    <div class="setup-header">
+      <div style="font-size:2.5rem;margin-bottom:10px">🎓</div>
+      <h2>مرحباً بك في نظام التقويم والاعتماد المدرسي</h2>
+      <p>يرجى إدخال بيانات المدرسة للبدء</p>
+    </div>
+    <div class="setup-body">
+      <div class="setup-field">
+        <label>اسم المدرسة *</label>
+        <input id="sw-name" placeholder="أدخل اسم المدرسة الكامل">
+      </div>
+      <div class="setup-row">
+        <div class="setup-field">
+          <label>المرحلة الدراسية *</label>
+          <select id="sw-stage">
+            <option value="">اختر المرحلة</option>
+            <option>ابتدائية</option>
+            <option>متوسطة</option>
+            <option>ثانوية</option>
+            <option>ابتدائية متوسطة</option>
+            <option>متوسطة ثانوية</option>
+          </select>
+        </div>
+        <div class="setup-field">
+          <label>نوع المدرسة</label>
+          <select id="sw-type">
+            <option value="gov">حكومية</option>
+            <option value="private">أهلية / عالمية</option>
+          </select>
+        </div>
+      </div>
+      <div class="setup-field">
+        <label>إدارة التعليم *</label>
+        <input id="sw-admin" placeholder="اسم إدارة التعليم / المنطقة">
+      </div>
+      <div class="setup-field">
+        <label>الرقم الوزاري</label>
+        <input id="sw-num" placeholder="الرقم الوزاري للمدرسة">
+      </div>
+    </div>
+    <div class="setup-footer">
+      <button class="btn-setup" onclick="completeSetup()">بدء الاستخدام ←</button>
+    </div>
+  </div>
+</div>
+
+<!-- LICENSE OVERLAY -->
+<div id="license-overlay">
+  <div class="license-box">
+    <div class="license-icon">🔐</div>
+    <div class="license-title">يلزم تفعيل الترخيص</div>
+    <div class="license-msg" id="license-msg">هذا البرنامج يحتاج إلى ترخيص صالح للعمل.<br>يرجى إدخال مفتاح الترخيص الخاص بك.</div>
+    <input class="license-key-input" id="license-key-input" placeholder="ACC-2026-XXXX-XXXX" dir="ltr">
+    <div class="license-machine" id="license-machine-id"></div>
+    <button class="license-activate-btn" onclick="activateLicense()">تفعيل الترخيص</button>
+    <div id="license-status-msg" style="margin-top:12px;font-size:.8rem;color:var(--danger)"></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-logos">
+    <!-- Hotfix: under this page's RTL direction, a plain flex row lays its
+         children out starting from the right edge — so the DOM order here
+         is intentionally "right slot, center info, left slot" to make the
+         visual left/right position match each slot's actual label/name.
+         (Previously left-then-right in the DOM, which rendered backwards.) -->
+    <div class="logo-slot" id="logo-right-slot" onclick="triggerLogoUpload('right')" title="شعار يمين">
+      <img id="logo-right-img" style="display:none">
+      <div class="logo-slot-label" id="logo-right-label">شعار<br>يمين</div>
+      <input type="file" id="logo-right-input" accept="image/*" style="display:none" onchange="uploadLogo('right',this)">
+    </div>
+    <div class="hdr-center-info">
+      <div class="hdr-school-name" id="hdr-school-name">اسم المدرسة</div>
+      <div class="hdr-school-sub" id="hdr-school-sub">إدارة التعليم · الرقم الوزاري</div>
+    </div>
+    <div class="logo-slot" id="logo-left-slot" onclick="triggerLogoUpload('left')" title="شعار يسار">
+      <img id="logo-left-img" style="display:none">
+      <div class="logo-slot-label" id="logo-left-label">شعار<br>يسار</div>
+      <input type="file" id="logo-left-input" accept="image/*" style="display:none" onchange="uploadLogo('left',this)">
+    </div>
+  </div>
+  <div class="hdr-main">
+    <div class="hdr-title">
+      <h1>🎓 التقويم والاعتماد المدرسي</h1>
+      <p>4 مجالات · 11 معيارًا · نظام إدارة الشواهد والأدلة</p>
+    </div>
+    <span class="badge">الإصدار الثاني ✦ احترافي</span>
+  </div>
+</div>
+
+<!-- TYPE BAR -->
+<div class="type-bar">
+  <label>نوع المدرسة:</label>
+  <div class="tog">
+    <button class="tog-btn on" onclick="setType('gov',this)">حكومية</button>
+    <button class="tog-btn" onclick="setType('private',this)">أهلية / عالمية</button>
+  </div>
+  <span id="type-hint" style="font-size:.75rem;color:var(--muted)">49 مؤشرًا للمدارس الحكومية</span>
+  <div class="api-status">
+    <div class="api-dot loading" id="api-dot"></div>
+    <span id="api-status-txt">جارٍ الاتصال...</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="side-hdr">التنقل</div>
+    <div class="nav-item active" onclick="showHome()" id="nav-home">
+      <div class="nav-dot" style="background:var(--primary)"></div>
+      <div class="nav-txt"><div class="nav-name">🏠 الرئيسية</div><div class="nav-sub">نظرة عامة</div></div>
+    </div>
+    <div class="nav-item" onclick="showDomain(1)" id="nav-d1">
+      <div class="nav-dot" style="background:var(--d1)"></div>
+      <div class="nav-txt"><div class="nav-name">الإدارة المدرسية</div><div class="nav-sub">5 معايير</div></div>
+    </div>
+    <div class="nav-item" onclick="showDomain(2)" id="nav-d2">
+      <div class="nav-dot" style="background:var(--d2)"></div>
+      <div class="nav-txt"><div class="nav-name">التعليم والتعلم</div><div class="nav-sub">2 معايير</div></div>
+    </div>
+    <div class="nav-item" onclick="showDomain(3)" id="nav-d3">
+      <div class="nav-dot" style="background:var(--d3)"></div>
+      <div class="nav-txt"><div class="nav-name">نواتج التعلم</div><div class="nav-sub">2 معايير</div></div>
+    </div>
+    <div class="nav-item" onclick="showDomain(4)" id="nav-d4">
+      <div class="nav-dot" style="background:var(--d4)"></div>
+      <div class="nav-txt"><div class="nav-name">البيئة المدرسية</div><div class="nav-sub">2 معايير</div></div>
+    </div>
+    <div class="nav-item" onclick="showSettings()" id="nav-settings">
+      <div class="nav-dot" style="background:#607d8b"></div>
+      <div class="nav-txt"><div class="nav-name">⚙️ الإعدادات</div><div class="nav-sub">بيانات المدرسة</div></div>
+    </div>
+    <div class="nav-item" onclick="showAudit()" id="nav-audit">
+      <div class="nav-dot" style="background:#ff7043"></div>
+      <div class="nav-txt"><div class="nav-name">📋 سجل الأحداث</div><div class="nav-sub">الأنشطة والتغييرات</div></div>
+    </div>
+    <div class="nav-item" onclick="showBackup()" id="nav-backup">
+      <div class="nav-dot" style="background:#43a047"></div>
+      <div class="nav-txt"><div class="nav-name">💾 النسخ الاحتياطي</div><div class="nav-sub">حفظ واستعادة</div></div>
+    </div>
+    <div class="side-actions">
+      <button class="btn-primary" onclick="createBackupNow()">💾 نسخة احتياطية</button>
+      <button class="btn-outline" onclick="window.print()">🖨️ طباعة</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main id="main-content" style="display:flex;flex-direction:column;gap:18px">
+
+    <!-- INFO CARD -->
+    <div class="info-card" id="info-card-bar">
+      <div class="info-card-header">
+        <div class="info-card-icon">📋</div>
+        <div><div class="info-card-title">بيانات المدرسة</div><div class="info-card-sub">معلومات أساسية</div></div>
+      </div>
+      <div class="info-grid">
+        <div class="info-field"><label>اسم المدرسة</label><input id="sn" placeholder="اسم المدرسة" onchange="autoSaveSchool()"></div>
+        <div class="info-field"><label>المرحلة</label><select id="sstage" onchange="autoSaveSchool()"><option value="">اختر</option><option>ابتدائية</option><option>متوسطة</option><option>ثانوية</option></select></div>
+        <div class="info-field"><label>إدارة التعليم</label><input id="sreg" placeholder="المنطقة / الإدارة" onchange="autoSaveSchool()"></div>
+        <div class="info-field"><label>الرقم الوزاري</label><input id="snum" placeholder="الرقم الوزاري" onchange="autoSaveSchool()"></div>
+      </div>
+    </div>
+
+    <!-- INTEGRITY ALERT (hidden by default) -->
+    <div class="integrity-alert" id="integrity-alert" style="display:none">
+      <strong>⚠️ تنبيه سلامة المجلدات</strong>
+      <span id="integrity-alert-msg"></span>
+    </div>
+
+    <!-- HOME VIEW -->
+    <div class="home-view" id="home-view">
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="stat-card-num" id="stat-total">52</div><div class="stat-card-label">إجمالي المؤشرات</div></div>
+        <div class="stat-card green"><div class="stat-card-num" id="stat-with-files">-</div><div class="stat-card-label">مؤشرات بها ملفات</div></div>
+        <div class="stat-card purple"><div class="stat-card-num" id="stat-total-files">-</div><div class="stat-card-label">إجمالي الملفات</div></div>
+        <div class="stat-card">
+          <div class="ring-wrap">
+            <svg viewBox="0 0 100 100">
+              <circle class="ring-bg" cx="50" cy="50" r="42"></circle>
+              <circle class="ring-fg" id="stat-ring-fg" cx="50" cy="50" r="42"></circle>
+            </svg>
+            <div class="ring-label" id="stat-ring-label">-</div>
+          </div>
+          <div class="stat-card-label">نسبة الإنجاز</div>
+          <!-- kept for backward-compatibility with existing code that reads/writes these -->
+          <div id="stat-completion" style="display:none"></div>
+          <div class="stat-progress" style="display:none"><div class="stat-progress-bar" id="stat-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- ACCREDITATION READINESS CARD -->
+      <div class="accred-card" id="accred-card">
+        <div class="accred-ring-wrap">
+          <svg viewBox="0 0 100 100">
+            <circle class="ring-bg" cx="50" cy="50" r="42"></circle>
+            <circle class="ring-fg" id="accred-ring-fg" cx="50" cy="50" r="42"></circle>
+          </svg>
+          <div class="accred-percent" id="accred-percent">-</div>
+        </div>
+        <div class="accred-body">
+          <div class="accred-title">🏫 جاهزية الاعتماد</div>
+          <span class="accred-status" id="accred-status">-</span>
+          <div class="accred-desc" id="accred-desc">جارٍ الحساب…</div>
+        </div>
+      </div>
+
+      <div class="home-header">
+        <div class="home-header-icon">🏫</div>
+        <div>
+          <div class="home-header-title">لوحة التقويم والاعتماد المدرسي</div>
+          <div class="home-header-sub">اختر مجالاً لبدء إدارة الشواهد والأدلة</div>
+        </div>
+      </div>
+      <div class="domains-grid" id="domains-grid"></div>
+      <div class="recent-files-card">
+        <div class="recent-files-title">🕐 آخر الملفات المضافة</div>
+        <div id="recent-files-list"><div style="color:var(--muted);font-size:.78rem;padding:8px 0">جارٍ التحميل...</div></div>
+      </div>
+    </div>
+
+    <!-- DOMAIN VIEWS -->
+    <div id="domain-views-container"></div>
+
+    <!-- SETTINGS VIEW -->
+    <div class="settings-view" id="settings-view">
+      <div class="settings-card">
+        <div class="settings-card-title">🏫 بيانات المدرسة</div>
+        <div class="settings-grid">
+          <div class="settings-field"><label>اسم المدرسة</label><input id="set-name" placeholder="اسم المدرسة الكامل"></div>
+          <div class="settings-field"><label>المرحلة الدراسية</label><select id="set-stage"><option value="">اختر</option><option>ابتدائية</option><option>متوسطة</option><option>ثانوية</option></select></div>
+          <div class="settings-field"><label>إدارة التعليم</label><input id="set-admin" placeholder="اسم إدارة التعليم"></div>
+          <div class="settings-field"><label>الرقم الوزاري</label><input id="set-num" placeholder="الرقم الوزاري"></div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn-primary" style="width:auto;padding:9px 24px" onclick="saveSettings()">💾 حفظ البيانات</button>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-card-title">🖼️ شعارات المدرسة</div>
+        <div class="logo-grid">
+          <div>
+            <div style="font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:8px">الشعار الأيمن</div>
+            <label class="logo-upload-area">
+              <img id="set-logo-right-preview" style="display:none">
+              <div id="set-logo-right-placeholder">📤 انقر لرفع الشعار الأيمن</div>
+              <div style="font-size:.68rem;color:var(--muted);margin-top:4px">PNG, JPG, SVG — حد أقصى 5MB</div>
+              <input type="file" accept="image/*" onchange="uploadSettingsLogo('right',this)">
+            </label>
+            <button class="btn-sm danger" style="margin-top:6px;width:100%" onclick="deleteLogo('right')">🗑 حذف الشعار الأيمن</button>
+          </div>
+          <div>
+            <div style="font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:8px">الشعار الأيسر</div>
+            <label class="logo-upload-area">
+              <img id="set-logo-left-preview" style="display:none">
+              <div id="set-logo-left-placeholder">📤 انقر لرفع الشعار الأيسر</div>
+              <div style="font-size:.68rem;color:var(--muted);margin-top:4px">PNG, JPG, SVG — حد أقصى 5MB</div>
+              <input type="file" accept="image/*" onchange="uploadSettingsLogo('left',this)">
+            </label>
+            <button class="btn-sm danger" style="margin-top:6px;width:100%" onclick="deleteLogo('left')">🗑 حذف الشعار الأيسر</button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-card-title">📁 مجلد الشواهد</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px">المجلد الذي يحتوي على هيكل مجلدات معايير التقويم والاعتماد. يمكن تغييره ليشير إلى المجلد الذي أرسلته.</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="ev-root-display" type="text" readonly style="flex:1;border:1.5px solid var(--bdr);border-radius:8px;padding:9px 12px;font-family:monospace;font-size:.78rem;color:var(--muted);background:var(--surf)" placeholder="المسار الافتراضي في بيانات التطبيق">
+          <button class="btn-primary" style="white-space:nowrap;padding:9px 16px" onclick="pickEvidenceRoot()">📂 اختيار مجلد</button>
+          <button class="btn-outline" style="white-space:nowrap;padding:9px 16px" onclick="resetEvidenceRoot()">↩ إعادة تعيين</button>
+        </div>
+        <div id="ev-root-status" style="margin-top:6px;font-size:.72rem;color:var(--success)"></div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-card-title">⚙️ إعدادات النظام</div>
+        <div class="settings-grid">
+          <div class="settings-field">
+            <label>النسخ الاحتياطي التلقائي</label>
+            <select id="set-auto-backup">
+              <option value="none">معطّل</option>
+              <option value="daily">يومي</option>
+              <option value="weekly">أسبوعي</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label>نسخ احتياطي عند الإغلاق</label>
+            <select id="set-backup-exit">
+              <option value="false">لا</option>
+              <option value="true">نعم</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn-primary" style="width:auto;padding:9px 24px" onclick="saveSystemSettings()">💾 حفظ الإعدادات</button>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-card-title">🔐 معلومات الترخيص</div>
+        <div id="license-info-panel" style="font-size:.82rem;line-height:2;color:var(--text)">جارٍ التحقق...</div>
+      </div>
+    </div>
+
+    <!-- AUDIT VIEW -->
+    <div class="audit-view" id="audit-view">
+      <div class="settings-card">
+        <div class="settings-card-title" style="justify-content:space-between">
+          <span>📋 سجل الأحداث</span>
+          <button class="btn-sm danger" onclick="clearAuditLog()">🗑 مسح السجل</button>
+        </div>
+        <div id="audit-table-container">
+          <table class="audit-table">
+            <thead>
+              <tr>
+                <th>#</th><th>التاريخ والوقت</th><th>الحدث</th><th>الملف / الهدف</th><th>المؤشر</th><th>التفاصيل</th>
+              </tr>
+            </thead>
+            <tbody id="audit-tbody"></tbody>
+          </table>
+        </div>
+        <div class="audit-pagination" id="audit-pagination"></div>
+      </div>
+    </div>
+
+    <!-- BACKUP VIEW -->
+    <div class="backup-view" id="backup-view">
+      <div class="settings-card">
+        <div class="settings-card-title" style="justify-content:space-between">
+          <span>💾 النسخ الاحتياطي</span>
+          <button class="btn-primary" style="width:auto;padding:7px 18px" onclick="createBackupNow()">➕ نسخة احتياطية جديدة</button>
+        </div>
+        <div class="backup-list" id="backup-list">
+          <div style="color:var(--muted);font-size:.8rem;padding:8px">جارٍ التحميل...</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- FILE MODAL -->
+<div class="modal-overlay" id="file-modal" onclick="closeModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">عرض الملف</span>
+      <button class="modal-close" onclick="closeModal()">✕ إغلاق</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-actions">
+      <a class="modal-dl" id="modal-dl" href="#" download>⬇ تحميل</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Phase 1.5: Professional Document Viewer — vendor libraries (all served
+     same-origin from app/js/vendor, no CDN, no CSP changes needed) -->
+<!-- Hotfix: pdf.js upgraded to 4.10.38. The upstream project stopped
+     shipping a classic-script/UMD build after v3, so it's now loaded as an
+     ES module and bridged onto window.pdfjsLib — every existing call site
+     (viewer.js, thumbnails.js, dialogs.js) keeps using the same global
+     exactly as before and needed no changes. This is loaded before the
+     classic scripts below, but since pdfjsLib is only ever touched lazily
+     (when a PDF is actually opened), load order/timing here is safe. -->
+<script type="module">
+  import * as pdfjsLib from './js/vendor/pdfjs/pdf.min.js';
+  window.pdfjsLib = pdfjsLib;
+</script>
+<script src="js/vendor/mammoth/mammoth.browser.min.js"></script>
+<script src="js/vendor/xlsx/xlsx.full.min.js"></script>
+<script src="js/vendor/jszip/jszip.min.js"></script>
+<script src="js/viewer.js"></script>
+<!-- Phase 1.5 Part 2: upload tray (additive) -->
+<script src="js/uploader.js"></script>
+<!-- Phase 1.5 Part 2 (remainder): thumbnails, context menu, dialogs -->
+<script src="js/thumbnails.js"></script>
+<script src="js/context-menu.js"></script>
+<script src="js/dialogs.js"></script>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════════
+const API = ''; // same-origin: the renderer is served by the same Express server it calls
+
+// ════════════════════════════════════════════════════════════
+// DOMAINS DATA (UNCHANGED)
+// ════════════════════════════════════════════════════════════
+const DOMAINS = [
+  {
+    id:1, color:'var(--d1)', hex:'#1565C0', icon:'🏫', bg:'#e3f2fd',
+    title:'المجال الأول: الإدارة المدرسية', shortTitle:'الإدارة المدرسية',
+    desc:'التخطيط · قيادة العملية · المجتمع المدرسي · التطوير المؤسسي · حقوق المتعلم',
+    standards:[
+      { id:'1-1', color:'#1565C0', name:'التخطيط', indicators:[
+        {code:'1-1-1-1',txt:'تضع المدرسة خطة تشغيلية شاملة وفق أهداف تطويرية محددة.'},
+        {code:'1-1-1-2',txt:'تتابع المدرسة تنفيذ خطتها التشغيلية، وتطورها بما يضمن تحقيق أهدافها.'},
+      ]},
+      { id:'1-2', color:'#1976d2', name:'قيادة العملية التعليمية', indicators:[
+        {code:'1-2-1-1',txt:'تعزز المدرسة القيم الإسلامية، والهوية الوطنية.'},
+        {code:'1-2-1-2',txt:'تطبق المدرسة قيم مهنة التعليم وأخلاقياتها، وتتابع الالتزام بها.'},
+        {code:'1-2-1-3',txt:'تطبق المدرسة إجراءات محددة؛ لدعم الانضباط المدرسي، وتتابع الالتزام بها.'},
+        {code:'1-2-1-4',txt:'تنفذ المدرسة برامج وأنشطة تربوية داعمة للسلوك الإيجابي لدى المتعلمين.'},
+        {code:'1-2-1-5',txt:'تنفذ المدرسة برامج وأنشطة إثرائية؛ لتطوير مواهب المتعلمين.'},
+      ]},
+      { id:'1-3', color:'#1e88e5', name:'المجتمع المدرسي', indicators:[
+        {code:'1-3-1-1',txt:'تعزز المدرسة بناء العلاقات الإيجابية والتعاون في المجتمع المدرسي.'},
+        {code:'1-3-1-2',txt:'تعزز المدرسة مشاركة الأسرة في تعلم أبنائهم.'},
+        {code:'1-3-1-3',txt:'تعزز المدرسة الشراكة المجتمعية؛ لدعم التعلم والتأثير الإيجابي في المجتمع.'},
+      ]},
+      { id:'1-4', color:'#1565c0', name:'التطوير المؤسسي', indicators:[
+        {code:'1-4-1-1',txt:'توفر المدرسة كادرًا تعليميًا مكتملًا ومؤهلًا.',priv:true},
+        {code:'1-4-1-2',txt:'توفر المدرسة كادرًا إداريًا مكتملًا ومؤهلًا.',priv:true},
+        {code:'1-4-1-3',txt:'تُظهر المدرسة الملاءة والاستدامة المالية.',priv:true},
+        {code:'1-4-1-4',txt:'تدعم المدرسة منسوبيها للحصول على الرخصة المهنية.'},
+        {code:'1-4-1-5',txt:'تدعم المدرسة التطوير المهني لمنسوبيها.'},
+        {code:'1-4-1-6',txt:'تطبق المدرسة التقويم الذاتي المبني على المعايير المعتمدة.'},
+        {code:'1-4-1-7',txt:'تنفذ المدرسة خطة التحسين بناء على نتائج التقويم المدرسي.'},
+      ]},
+      { id:'1-5', color:'#0d47a1', name:'حقوق المتعلم وحمايته', indicators:[
+        {code:'1-5-1-1',txt:'تلتزم المدرسة بالمحافظة على حقوق المتعلمين، وحمايتهم.'},
+        {code:'1-5-1-2',txt:'توفر المدرسة مناخًا آمنًا للتعلم والنمو نفسيًا واجتماعيًا.'},
+      ]},
+    ]
+  },
+  {
+    id:2, color:'var(--d2)', hex:'#6A1B9A', icon:'📚', bg:'#f3e5f5',
+    title:'المجال الثاني: التعليم والتعلم', shortTitle:'التعليم والتعلم',
+    desc:'بناء خبرات التعلم · تقويم التعلم',
+    standards:[
+      { id:'2-1', color:'#6A1B9A', name:'بناء خبرات التعلم', indicators:[
+        {code:'2-1-1-1',txt:'توفر المدرسة فرصًا متكافئة للتعلم تلبي احتياجات المتعلمين.'},
+        {code:'2-1-1-2',txt:'تدعم المدرسة تنفيذ المناهج بما يحقق نواتج التعلم المستهدفة.'},
+        {code:'2-1-1-3',txt:'تنوع المدرسة في إستراتيجيات التعليم والتعلم.'},
+        {code:'2-1-1-4',txt:'تفعّل المدرسة التقنية الرقمية؛ لدعم تعلم المتعلمين.'},
+        {code:'2-1-1-5',txt:'تنفذ المدرسة أنشطة تعلم تطبيقية ترتبط بحياة المتعلمين.'},
+        {code:'2-1-1-6',txt:'تنمي المدرسة المهارات القرائية والعددية الأساسية لدى المتعلمين.'},
+        {code:'2-1-1-7',txt:'تنمي المدرسة مهارات التفكير والبحث والابتكار لدى المتعلمين.'},
+        {code:'2-1-1-8',txt:'تنمي المدرسة المهارات العاطفية والاجتماعية لدى المتعلمين.'},
+        {code:'2-1-1-9',txt:'تعزز المدرسة دافعية المتعلمين للتعلم، والاستمتاع به.'},
+      ]},
+      { id:'2-2', color:'#7b1fa2', name:'تقويم التعلم', indicators:[
+        {code:'2-2-1-1',txt:'تطبق المدرسة أساليب وأدوات تقويم متنوعة؛ للكشف عن مستويات أداء المتعلمين.'},
+        {code:'2-2-1-2',txt:'تطبق المدرسة أساليب وأدوات متنوعة؛ لتقويم نواتج التعلم.'},
+        {code:'2-2-1-3',txt:'تحلل المدرسة نتائج التقويم، وتوظفها في تحسين عمليات التعليم والتعلم.'},
+        {code:'2-2-1-4',txt:'تقدم المدرسة التغذية الراجعة للمتعلمين وأولياء أمورهم.'},
+      ]},
+    ]
+  },
+  {
+    id:3, color:'var(--d3)', hex:'#2E7D32', icon:'🏆', bg:'#e8f5e9',
+    title:'المجال الثالث: نواتج التعلم', shortTitle:'نواتج التعلم',
+    desc:'التحصيل التعليمي · التطور الشخصي والصحي والاجتماعي',
+    standards:[
+      { id:'3-1', color:'#2E7D32', name:'التحصيل التعليمي', indicators:[
+        {code:'3-1-1-1',txt:'يحقق المتعلمون نتائج مرتفعة في مجال القراءة وفقًا للاختبارات الوطنية.'},
+        {code:'3-1-1-2',txt:'يحقق المتعلمون نتائج مرتفعة في مجال الرياضيات.'},
+        {code:'3-1-1-3',txt:'يحقق المتعلمون نتائج مرتفعة في مجال العلوم.'},
+        {code:'3-1-1-4',txt:'يحقق المتعلمون تقدمًا في مجال القراءة قياسًا على المستوى السابق.'},
+        {code:'3-1-1-5',txt:'يحقق المتعلمون تقدمًا في مجال الرياضيات قياسًا على المستوى السابق.'},
+        {code:'3-1-1-6',txt:'يحقق المتعلمون تقدمًا في مجال العلوم قياسًا على المستوى السابق.'},
+      ]},
+      { id:'3-2', color:'#388e3c', name:'التطور الشخصي والصحي والاجتماعي', indicators:[
+        {code:'3-2-1-1',txt:'يُظهر المتعلمون الاعتزاز بالقيم والهوية الوطنية.'},
+        {code:'3-2-1-2',txt:'يُظهر المتعلمون اتجاهات إيجابية نحو ذواتهم والآخرين.'},
+        {code:'3-2-1-3',txt:'يُظهر المتعلمون التزامًا بالممارسات الصحية السليمة.'},
+        {code:'3-2-1-4',txt:'يشارك المتعلمون في الأنشطة المجتمعية والأعمال التطوعية.'},
+        {code:'3-2-1-5',txt:'يلتزم المتعلمون بقواعد السلوك والانضباط المدرسي.'},
+        {code:'3-2-1-6',txt:'يُظهر المتعلمون الاستقلالية والقدرة على التعلم الذاتي.'},
+        {code:'3-2-1-7',txt:'يُظهر المتعلمون اعتزازًا بثقافتهم واحترامًا للتنوع الثقافي.'},
+      ]},
+    ]
+  },
+  {
+    id:4, color:'var(--d4)', hex:'#C62828', icon:'🏗️', bg:'#ffebee',
+    title:'المجال الرابع: البيئة المدرسية', shortTitle:'البيئة المدرسية',
+    desc:'المبنى المدرسي · الأمن والسلامة',
+    standards:[
+      { id:'4-1', color:'#C62828', name:'المبنى المدرسي', indicators:[
+        {code:'4-1-1-1',txt:'توفر المدرسة مبنى تعليميًا يستوفي المواصفات والاشتراطات المعتمدة.'},
+        {code:'4-1-1-2',txt:'تنظيم مبنى المدرسة ملائم لعدد المتعلمين وخصائص المرحلة العمرية.'},
+        {code:'4-1-1-3',txt:'تتوافر فصول ومعامل ملائمة للعملية التعليمية.'},
+        {code:'4-1-1-4',txt:'تلبي المرافق والتجهيزات والخدمات المساندة احتياجات المتعلمين.'},
+      ]},
+      { id:'4-2', color:'#b71c1c', name:'الأمن والسلامة', indicators:[
+        {code:'4-2-1-1',txt:'تتوافر في مبنى المدرسة ومرافقها جميع متطلبات الأمن والسلامة.'},
+        {code:'4-2-1-2',txt:'تتابع المدرسة صيانة المبنى، وجميع مرافقه وتجهيزاته بشكل دوري.'},
+        {code:'4-2-1-3',txt:'تتابع المدرسة نظافة المبنى المدرسي، وجميع مرافقه بشكل مستمر.'},
+      ]},
+    ]
+  }
+];
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let schoolType = 'gov';
+let currentView = 'home';
+let openStdId = null;
+let serverOnline = false;
+let indicatorMapFromServer = {};
+let auditPage = 1;
+
+// ════════════════════════════════════════════════════════════
+// FILE UTILITIES
+// ════════════════════════════════════════════════════════════
+const FILE_ICONS = {
+  pdf:'📄', doc:'📝', docx:'📝', xls:'📊', xlsx:'📊',
+  ppt:'📑', pptx:'📑', zip:'🗜️', rar:'🗜️', txt:'📃',
+  jpg:'🖼️', jpeg:'🖼️', png:'🖼️', webp:'🖼️', gif:'🖼️',
+};
+const BG_CLASS = {
+  pdf:'pdf-bg', word:'word-bg', excel:'excel-bg',
+  powerpoint:'ppt-bg', archive:'zip-bg', text:'text-bg',
+  image:'', file:'file-bg',
+};
+function fileIcon(ext) { return FILE_ICONS[ext.replace('.','').toLowerCase()] || '📎'; }
+function isImage(ext) { return ['jpg','jpeg','png','webp','gif','bmp'].includes(ext.replace('.','').toLowerCase()); }
+
+// ════════════════════════════════════════════════════════════
+// INIT & BOOT SEQUENCE
+// ════════════════════════════════════════════════════════════
+async function init() {
+  // 1. Check license
+  const licenseOk = await checkLicense();
+  if (!licenseOk) return; // license overlay shows
+
+  // 2. Ping server
+  await pingServer();
+
+  // 3. Load school data
+  await loadSchoolData();
+
+  // 4. Build UI
+  buildDomainsGrid();
+  buildDomainViews();
+
+  // 5. Check folder integrity
+  await checkIntegrity();
+
+  // 6. Load dashboard stats
+  loadStats();
+
+  // 7. SSE for file watching
+  setupSSE();
+
+  // 8. Periodic refresh
+  setInterval(pingServer, 15000);
+  setInterval(loadStats, 30000);
+}
+
+// ════════════════════════════════════════════════════════════
+// LICENSE CHECK
+// ════════════════════════════════════════════════════════════
+async function checkLicense() {
+  // License interface disabled — always treated as valid.
+  return true;
+}
+
+async function activateLicense() {
+  const key = document.getElementById('license-key-input').value.trim().toUpperCase();
+  const statusEl = document.getElementById('license-status-msg');
+
+  if (!key) { statusEl.textContent = 'يرجى إدخال مفتاح الترخيص.'; return; }
+
+  // Parse format ACC-YEAR-XXXX-XXXX and generate checksum via server
+  statusEl.textContent = 'جارٍ التحقق...';
+
+  try {
+    // First get machine ID
+    const lStatus = await fetch(`${API}/api/license/status`).then(r=>r.json());
+    const machineId = lStatus.machineId;
+
+    // Try activation - server will verify checksum
+    // For offline activation, the license package includes key+checksum
+    // Format: KEY|CHECKSUM or KEY|CHECKSUM|EXPIRES
+    const parts = key.split('|');
+    const licenseKey = parts[0];
+    const checksum   = parts[1] || '';
+    const expiresAt  = parts[2] || '';
+
+    const r = await fetch(`${API}/api/license/activate`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ licenseKey, machineId, expiresAt, checksum }),
+    });
+    const data = await r.json();
+    if (data.success) {
+      statusEl.style.color='var(--success)';
+      statusEl.textContent = '✅ تم تفعيل الترخيص بنجاح!';
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      statusEl.textContent = '❌ ' + (data.error || 'فشل التفعيل.');
+    }
+  } catch (err) {
+    statusEl.textContent = '❌ خطأ في الاتصال: ' + err.message;
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// SETUP WIZARD
+// ════════════════════════════════════════════════════════════
+async function loadSchoolData() {
+  try {
+    const data = await fetch(`${API}/api/school`).then(r=>r.json());
+    if (!data.setup_done) {
+      document.getElementById('setup-overlay').classList.add('show');
+      if (data.name) document.getElementById('sw-name').value = data.name;
+    } else {
+      fillSchoolData(data);
+    }
+    // Load logos
+    updateLogos(data);
+  } catch {}
+}
+
+function fillSchoolData(data) {
+  // Info card
+  const sn = document.getElementById('sn');
+  if (sn) sn.value = data.name || '';
+  const ss = document.getElementById('sstage');
+  if (ss) ss.value = data.stage || '';
+  const sr = document.getElementById('sreg');
+  if (sr) sr.value = data.admin_name || '';
+  const snum = document.getElementById('snum');
+  if (snum) snum.value = data.ministry_num || '';
+
+  // Settings fields
+  ['set-name','set-stage','set-admin','set-num'].forEach((id,i) => {
+    const el = document.getElementById(id);
+    const vals = [data.name, data.stage, data.admin_name, data.ministry_num];
+    if (el) el.value = vals[i] || '';
+  });
+
+  // Header
+  const hName = document.getElementById('hdr-school-name');
+  if (hName) hName.textContent = data.name || 'اسم المدرسة';
+  const hSub = document.getElementById('hdr-school-sub');
+  if (hSub) hSub.textContent = (data.admin_name||'') + (data.ministry_num ? ' · ' + data.ministry_num : '');
+
+  // School type
+  if (data.school_type) {
+    schoolType = data.school_type;
+    document.querySelectorAll('.tog-btn').forEach(b => {
+      b.classList.toggle('on', b.textContent.includes(schoolType === 'gov' ? 'حكومية' : 'أهلية'));
+    });
+  }
+}
+
+function updateLogos(data) {
+  ['right','left'].forEach(side => {
+    const url = side === 'right' ? data.logo_right : data.logo_left;
+    updateLogoDisplay(side, url);
+  });
+}
+
+function updateLogoDisplay(side, url) {
+  const img   = document.getElementById('logo-' + side + '-img');
+  const label = document.getElementById('logo-' + side + '-label');
+  const slot  = document.getElementById('logo-' + side + '-slot');
+  const slotImg = document.getElementById('set-logo-' + side + '-preview');
+  const slotPh  = document.getElementById('set-logo-' + side + '-placeholder');
+
+  if (url && img) {
+    img.src = `${API}${url}`;
+    img.style.display = 'block';
+    if (label) label.style.display = 'none';
+    if (slot) slot.classList.add('has-logo');
+  } else if (img) {
+    img.style.display = 'none';
+    if (label) label.style.display = 'block';
+    if (slot) slot.classList.remove('has-logo');
+  }
+
+  if (slotImg && url) {
+    slotImg.src = `${API}${url}`;
+    slotImg.style.display = 'block';
+    if (slotPh) slotPh.style.display = 'none';
+    const uploadArea = slotImg.closest('.logo-upload-area');
+    if (uploadArea) uploadArea.classList.add('has-logo');
+  } else if (slotImg) {
+    slotImg.style.display = 'none';
+    if (slotPh) slotPh.style.display = 'block';
+    const uploadArea = slotImg.closest('.logo-upload-area');
+    if (uploadArea) uploadArea.classList.remove('has-logo');
+  }
+}
+
+async function completeSetup() {
+  const name  = document.getElementById('sw-name').value.trim();
+  const stage = document.getElementById('sw-stage').value;
+  const admin = document.getElementById('sw-admin').value.trim();
+  const num   = document.getElementById('sw-num').value.trim();
+  const type  = document.getElementById('sw-type').value;
+
+  if (!name || !stage || !admin) {
+    showToast('⚠️ يرجى ملء الحقول المطلوبة', 'error'); return;
+  }
+
+  const r = await fetch(`${API}/api/school`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ name, stage, admin_name: admin, ministry_num: num, school_type: type, setup_done: 1 }),
+  });
+  if (r.ok) {
+    document.getElementById('setup-overlay').classList.remove('show');
+    fillSchoolData({ name, stage, admin_name: admin, ministry_num: num, school_type: type });
+    showToast('✅ تم حفظ بيانات المدرسة', 'success');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// LOGO UPLOAD
+// ════════════════════════════════════════════════════════════
+function triggerLogoUpload(side) {
+  document.getElementById('logo-' + side + '-input').click();
+}
+
+async function uploadLogo(side, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('logo', file);
+  const r = await fetch(`${API}/api/logo/${side}`, { method: 'POST', body: formData });
+  const data = await r.json();
+  if (data.success) {
+    updateLogoDisplay(side, data.url);
+    showToast('✅ تم رفع الشعار', 'success');
+  }
+  input.value = '';
+}
+
+async function uploadSettingsLogo(side, input) {
+  await uploadLogo(side, input);
+}
+
+async function deleteLogo(side) {
+  if (!confirm('هل تريد حذف هذا الشعار؟')) return;
+  await fetch(`${API}/api/logo/${side}`, { method: 'DELETE' });
+  updateLogoDisplay(side, '');
+  showToast('تم حذف الشعار');
+}
+
+// ════════════════════════════════════════════════════════════
+// SERVER PING
+// ════════════════════════════════════════════════════════════
+async function pingServer() {
+  const dot = document.getElementById('api-dot');
+  const txt = document.getElementById('api-status-txt');
+  try {
+    const r = await fetch(`${API}/api/structure`, { signal: AbortSignal.timeout(3000) });
+    const data = await r.json();
+    serverOnline = true;
+    indicatorMapFromServer = data.indicatorMap || {};
+    dot.className = 'api-dot ok';
+    txt.textContent = `متصل · ${data.total} مجلد`;
+  } catch {
+    serverOnline = false;
+    dot.className = 'api-dot err';
+    txt.textContent = 'الخادم غير متاح';
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// SSE — REAL-TIME FILE WATCHING
+// ════════════════════════════════════════════════════════════
+function setupSSE() {
+  const es = new EventSource(`${API}/api/events`);
+  es.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    if (data.event === 'add') {
+      showToast(`📂 تم اكتشاف ملف جديد: ${data.file}`, 'success');
+      if (data.code) loadFiles(data.code);
+      loadStats();
+    } else if (data.event === 'remove') {
+      if (data.code) loadFiles(data.code);
+      loadStats();
+    }
+  };
+  es.onerror = () => {};
+}
+
+// ════════════════════════════════════════════════════════════
+// STATS
+// ════════════════════════════════════════════════════════════
+async function loadStats() {
+  try {
+    const data = await fetch(`${API}/api/stats`).then(r=>r.json());
+    const el = (id) => document.getElementById(id);
+    el('stat-with-files').textContent = data.indicatorsWithFiles;
+    el('stat-total-files').textContent = data.totalFiles;
+    el('stat-completion').textContent  = data.completionPct + '%';
+    el('stat-bar').style.width = data.completionPct + '%';
+
+    // Recent files
+    const recentEl = document.getElementById('recent-files-list');
+    if (recentEl) {
+      if (data.recentFiles.length === 0) {
+        recentEl.innerHTML = '<div style="color:var(--muted);font-size:.76rem;padding:6px 0">لا توجد ملفات بعد</div>';
+      } else {
+        recentEl.innerHTML = data.recentFiles.map(f => `
+          <div class="recent-file-item">
+            <span class="recent-file-code">${f.code}</span>
+            <span class="recent-file-name">${fileIcon('.' + f.name.split('.').pop())} ${f.name}</span>
+            <span class="recent-file-date">${new Date(f.modified).toLocaleDateString('ar-SA')}</span>
+          </div>`).join('');
+      }
+    }
+  } catch {}
+  // New in Phase 1.5: refresh the ring-progress visuals (completion card,
+  // domain mini-rings, accreditation-readiness card). Runs alongside the
+  // existing stats refresh above; doesn't touch anything that was here before.
+  refreshCompletionEngine();
+}
+
+// ════════════════════════════════════════════════════════════
+// COMPLETION ENGINE — RING PROGRESS VISUALS
+// Internal rule (never shown in the UI): an indicator reaches 100% once it
+// has 6 evidence files or more — 0,1,2,3,4,5,6+ files map to roughly
+// 0/16/33/50/66/83/100%, with no upper cap on how many files can be stored.
+// The per-indicator numbers themselves are computed server-side by
+// completionService.js (/api/progress); this just paints the rings.
+// ════════════════════════════════════════════════════════════
+const RING_R = 42;
+const RING_C = 2 * Math.PI * RING_R;
+
+function ringColorFor(pct) {
+  if (pct >= 80) return 'var(--success)';
+  if (pct >= 50) return 'var(--warn)';
+  return 'var(--danger)';
+}
+
+function paintRing(fgEl, pct) {
+  if (!fgEl) return;
+  const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+  fgEl.style.strokeDasharray = `${RING_C}`;
+  fgEl.style.strokeDashoffset = `${RING_C - (RING_C * clamped / 100)}`;
+  fgEl.style.stroke = ringColorFor(clamped);
+}
+
+function accreditationStatus(pct) {
+  if (pct >= 90) return { label: 'ممتاز',              desc: 'جاهزة بدرجة عالية للاعتماد',                                          cls: 'excellent' };
+  if (pct >= 80) return { label: 'جيد جدًا',            desc: 'جاهزة بدرجة جيدة جدًا للاعتماد',                                       cls: 'verygood' };
+  if (pct >= 65) return { label: 'جيد',                 desc: 'جاهزة بدرجة جيدة للاعتماد، مع بعض الجوانب التي تحتاج إلى تطوير',        cls: 'good' };
+  if (pct >= 40) return { label: 'يحتاج إلى تحسين',      desc: 'تحتاج المدرسة إلى تحسين عدد من الجوانب قبل التقدم للاعتماد',            cls: 'needsattention' };
+  return          { label: 'بداية الطريق',              desc: 'المدرسة في المراحل الأولى من الاستعداد للاعتماد',                       cls: 'beginning' };
+}
+
+async function refreshCompletionEngine() {
+  try {
+    const data = await fetch(`${API}/api/progress`).then(r => r.json());
+    const indicators = Object.values(data.indicators || {});
+    if (!indicators.length) return;
+
+    const overall = Math.round(indicators.reduce((s, i) => s + i.percent, 0) / indicators.length);
+
+    paintRing(document.getElementById('stat-ring-fg'), overall);
+    const stLabel = document.getElementById('stat-ring-label');
+    if (stLabel) stLabel.textContent = overall + '%';
+
+    DOMAINS.forEach(d => {
+      const domInds = indicators.filter(i => i.code.split('-')[0] === String(d.id));
+      const pct = domInds.length ? Math.round(domInds.reduce((s, i) => s + i.percent, 0) / domInds.length) : 0;
+      paintRing(document.getElementById(`ring-mini-fg-${d.id}`), pct);
+      const lbl = document.getElementById(`ring-mini-label-${d.id}`);
+      if (lbl) lbl.textContent = pct + '%';
+    });
+
+    paintRing(document.getElementById('accred-ring-fg'), overall);
+    const accPercentEl = document.getElementById('accred-percent');
+    if (accPercentEl) accPercentEl.textContent = overall + '%';
+
+    const status = accreditationStatus(overall);
+    const statusEl = document.getElementById('accred-status');
+    if (statusEl) { statusEl.textContent = status.label; statusEl.className = 'accred-status ' + status.cls; }
+    const descEl = document.getElementById('accred-desc');
+    if (descEl) descEl.textContent = status.desc;
+  } catch (err) {
+    console.error('تعذّر تحديث مؤشرات الإنجاز', err);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// INTEGRITY CHECK
+// ════════════════════════════════════════════════════════════
+async function checkIntegrity() {
+  try {
+    const data = await fetch(`${API}/api/integrity`).then(r=>r.json());
+    const alertEl = document.getElementById('integrity-alert');
+    const msgEl   = document.getElementById('integrity-alert-msg');
+    if (data.issues.length > 0 || data.missingFolders.length > 0) {
+      alertEl.style.display = 'block';
+      let msg = '';
+      if (data.issues.length) msg += data.issues.map(i => i.message).join('. ');
+      if (data.missingFolders.length) msg += ` · ${data.missingFolders.length} مجلدات مؤشرات غير موجودة: ${data.missingFolders.join(', ')}`;
+      msgEl.textContent = msg;
+    } else {
+      alertEl.style.display = 'none';
+    }
+  } catch {}
+}
+
+// ════════════════════════════════════════════════════════════
+// EVIDENCE
+// ════════════════════════════════════════════════════════════
+function buildEvidenceSection(code, color) {
+  const hasFolderOnServer = !!indicatorMapFromServer[code];
+  const sec = document.createElement('div');
+  sec.className = 'evidence-section';
+  sec.id = `ev-sec-${code}`;
+
+  sec.innerHTML = `
+    <div class="evidence-header">
+      <div class="evidence-title">📂 الشواهد والأدلة
+        <span class="file-count-badge" id="ev-count-${code}">0 ملف</span>
+      </div>
+      <div class="evidence-actions">
+        ${serverOnline ? `
+        <label class="ev-btn ev-btn-upload" title="رفع ملفات">
+          ⬆ رفع
+          <input type="file" multiple style="display:none" onchange="uploadFiles('${code}',this)">
+        </label>
+        <button class="ev-btn" title="فتح المجلد" onclick="openFolder('${code}')">📁</button>` : ''}
+        <button class="ev-btn ev-btn-refresh" onclick="loadFiles('${code}')">🔄</button>
+      </div>
+    </div>
+    <div class="evidence-drop-zone" id="ev-drop-${code}"
+         ondragover="handleDragOver(event,'${code}')"
+         ondragleave="handleDragLeave(event,'${code}')"
+         ondrop="handleDrop(event,'${code}')">
+      <div class="evidence-body" id="ev-body-${code}">
+        ${serverOnline
+          ? (hasFolderOnServer
+              ? '<div class="evidence-loading">⏳ جارٍ التحميل...</div>'
+              : '<div class="no-folder-note">⚠️ لم يُعثر على مجلد لهذا المؤشر في مجلد الشواهد</div>')
+          : '<div class="evidence-empty"><div class="evidence-empty-icon">🔌</div><div class="evidence-empty-text">الخادم غير متصل</div></div>'
+        }
+      </div>
+      <div class="drop-overlay" id="ev-overlay-${code}">اسحب وأفلت الملفات هنا ⬇</div>
+    </div>`;
+
+  return sec;
+}
+
+async function loadFiles(code) {
+  if (!serverOnline) return;
+  const body = document.getElementById(`ev-body-${code}`);
+  const countEl = document.getElementById(`ev-count-${code}`);
+  if (!body) return;
+  body.innerHTML = '<div class="evidence-loading">⏳</div>';
+
+  try {
+    const data = await fetch(`${API}/api/files/${code}`).then(r=>r.json());
+    if (!data.folderExists) {
+      body.innerHTML = '<div class="no-folder-note">⚠️ مجلد هذا المؤشر غير موجود</div>';
+      if (countEl) countEl.textContent = '0 ملف';
+      return;
+    }
+    const files = data.files || [];
+    if (countEl) countEl.textContent = files.length + ' ملف';
+    window.__lastFilesByCode = window.__lastFilesByCode || {};
+    window.__lastFilesByCode[code] = files;
+    if (files.length === 0) {
+      body.innerHTML = `<div class="evidence-empty">
+        <div class="evidence-empty-icon">📭</div>
+        <div class="evidence-empty-text">لا توجد ملفات<br>أضف ملفات أو استخدم زر الرفع</div>
+      </div>`;
+      return;
+    }
+    const grid = document.createElement('div');
+    grid.className = 'file-grid';
+    files.forEach(f => grid.appendChild(buildFileCard(code, f)));
+    body.innerHTML = '';
+    body.appendChild(grid);
+  } catch (err) {
+    body.innerHTML = `<div class="evidence-empty"><div class="evidence-empty-icon">❌</div><div class="evidence-empty-text">${err.message}</div></div>`;
+  }
+}
+
+function buildFileCard(code, file) {
+  const card = document.createElement('div');
+  card.className = 'file-card';
+  const ext = file.ext.replace('.','').toLowerCase();
+  const url = `${API}/api/file/${code}/${encodeURIComponent(file.name)}`;
+  const date = new Date(file.modified).toLocaleDateString('ar-SA');
+
+  if (isImage(file.ext)) {
+    card.innerHTML = `
+      <img class="file-card-thumb" src="${url}" alt="${file.name}" loading="lazy" onerror="this.style.display='none'">
+      <div class="file-card-name" title="${file.name}">${file.name}</div>
+      <div class="file-card-meta">${file.size} · ${date}</div>
+      <div class="file-card-del" onclick="deleteFile(event,'${code}','${file.name.replace(/'/g,"\\'")}')">🗑</div>`;
+  } else {
+    const bgCls = BG_CLASS[file.category] || 'file-bg';
+    card.innerHTML = `
+      <div class="file-card-icon ${bgCls}">${fileIcon(file.ext)}</div>
+      <div class="file-card-name" title="${file.name}">${file.name}</div>
+      <div class="file-card-meta">${file.size} · ${date}</div>
+      <div class="file-card-del" onclick="deleteFile(event,'${code}','${file.name.replace(/'/g,"\\'")}')">🗑</div>`;
+  }
+  card.onclick = () => openFileModal(code, file);
+  card.oncontextmenu = (e) => { e.preventDefault(); ContextMenu.show(e, code, file); };
+  if (typeof Thumbnails !== 'undefined') Thumbnails.attach(card, code, file);
+  return card;
+}
+
+async function uploadFiles(code, input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const { ok, total } = await Uploader.enqueue(code, files, 'upload');
+  input.value = '';
+  showToast(`✅ تم رفع ${ok}/${total} ملف`, ok === total ? 'success' : 'error');
+  loadFiles(code); loadStats();
+}
+
+// ════════════════════════════════════════════════════════════
+// DRAG & DROP FILE UPLOAD
+// ════════════════════════════════════════════════════════════
+function handleDragOver(e, code) {
+  e.preventDefault(); e.stopPropagation();
+  const zone = document.getElementById('ev-drop-'+code);
+  if (zone) zone.classList.add('dragover');
+}
+
+function handleDragLeave(e, code) {
+  e.preventDefault();
+  const zone = document.getElementById('ev-drop-'+code);
+  if (zone && !zone.contains(e.relatedTarget)) zone.classList.remove('dragover');
+}
+
+async function handleDrop(e, code) {
+  e.preventDefault(); e.stopPropagation();
+  const zone = document.getElementById('ev-drop-'+code);
+  if (zone) zone.classList.remove('dragover');
+  const files = Array.from(e.dataTransfer.files);
+  if (!files.length) return;
+  const { ok, total } = await Uploader.enqueue(code, files, 'upload-raw');
+  showToast(`✅ تم رفع ${ok}/${total} ملف`, ok === total ? 'success' : 'error');
+  loadFiles(code); loadStats();
+}
+
+async function openFolder(code) {
+  try {
+    await fetch(`${API}/api/open-folder/${code}`, { method:'POST' });
+  } catch {}
+}
+
+async function deleteFile(e, code, name) {
+  e.stopPropagation();
+  if (!confirm(`هل تريد حذف "${name}"؟`)) return;
+  try {
+    await fetch(`${API}/api/file/${code}/${encodeURIComponent(name)}`, { method:'DELETE' });
+    showToast('🗑 تم الحذف');
+    loadFiles(code);
+    loadStats();
+  } catch { showToast('❌ فشل الحذف', 'error'); }
+}
+
+// ════════════════════════════════════════════════════════════
+// FILE MODAL
+// ════════════════════════════════════════════════════════════
+function openFileModal(code, file) {
+  // Phase 1.5: file previews are now handled by the Professional Document
+  // Viewer (js/viewer.js), which renders PDF/image/video/audio/Word/Excel/
+  // PowerPoint/text in-app with zoom, search, metadata and playback controls.
+  // The legacy #file-modal element above is kept in place, unused, so no
+  // existing markup is removed.
+  Viewer.open(code, file);
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('file-modal')) return;
+  document.getElementById('file-modal').classList.remove('open');
+  document.getElementById('modal-body').innerHTML = '';
+}
+
+// ════════════════════════════════════════════════════════════
+// BUILD UI — DOMAINS
+// ════════════════════════════════════════════════════════════
+function buildDomainsGrid() {
+  const grid = document.getElementById('domains-grid');
+  grid.innerHTML = '';
+  DOMAINS.forEach(d => {
+    const totalInds = d.standards.reduce((s,st)=>s+st.indicators.length,0);
+    const card = document.createElement('div');
+    card.className = 'domain-card';
+    card.style.setProperty('--dc', d.hex);
+    card.onclick = () => showDomain(d.id);
+    card.innerHTML = `
+      <div class="domain-card-top">
+        <div class="domain-card-icon" style="background:${d.bg};color:${d.hex}">${d.icon}</div>
+        <div><div class="domain-card-name" style="color:${d.hex}">${d.title}</div></div>
+        <div class="ring-mini-wrap" id="ring-mini-${d.id}">
+          <svg viewBox="0 0 100 100">
+            <circle class="ring-bg" cx="50" cy="50" r="42"></circle>
+            <circle class="ring-fg" id="ring-mini-fg-${d.id}" cx="50" cy="50" r="42"></circle>
+          </svg>
+          <div class="ring-mini-label" id="ring-mini-label-${d.id}">-</div>
+        </div>
+      </div>
+      <div class="domain-card-desc">${d.desc}</div>
+      <div class="domain-card-footer">
+        <span class="domain-card-meta">${d.standards.length} معايير · ${totalInds} مؤشرًا</span>
+        <span class="domain-card-arrow">الدخول ←</span>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function buildDomainViews() {
+  const container = document.getElementById('domain-views-container');
+  container.innerHTML = '';
+  DOMAINS.forEach(d => container.appendChild(buildDomainView(d)));
+}
+
+function buildDomainView(d) {
+  const view = document.createElement('div');
+  view.className = 'domain-view';
+  view.id = 'domain-view-'+d.id;
+
+  const hdr = document.createElement('div');
+  hdr.className = 'domain-view-header';
+  hdr.style.background = `linear-gradient(135deg,${d.hex} 0%,${d.hex}cc 100%)`;
+  hdr.innerHTML = `
+    <div class="domain-view-banner">
+      <div class="domain-view-icon" style="background:rgba(255,255,255,.18)">${d.icon}</div>
+      <div style="color:#fff">
+        <div class="domain-view-title">${d.title}</div>
+        <div class="domain-view-desc">${d.desc}</div>
+      </div>
+    </div>
+    <div class="domain-view-breadcrumb" style="color:#fff">
+      <button class="breadcrumb-back" onclick="showHome()">← الرئيسية</button>
+      <span style="opacity:.6">›</span>
+      <span style="opacity:.85;font-weight:600">${d.shortTitle}</span>
+    </div>`;
+  view.appendChild(hdr);
+
+  const stList = document.createElement('div');
+  stList.className = 'standards-list';
+  d.standards.forEach(s => stList.appendChild(buildStdCard(s, d)));
+  view.appendChild(stList);
+  return view;
+}
+
+function buildStdCard(s, d) {
+  const card = document.createElement('div');
+  card.className = 'std-card';
+  card.id = 'std-card-'+s.id;
+  const visInds = s.indicators.filter(i=>!(i.priv && schoolType==='gov'));
+  const hdr = document.createElement('div');
+  hdr.className = 'std-card-hdr';
+  hdr.id = 'std-hdr-'+s.id;
+  hdr.onclick = () => toggleStd(s.id);
+  hdr.innerHTML = `
+    <div class="std-card-hdr-l">
+      <span class="std-badge" style="background:${s.color}">${s.id}</span>
+      <span class="std-card-name">${s.name}</span>
+    </div>
+    <div class="std-card-hdr-r">
+      <span class="std-ind-count" id="std-count-${s.id}">${visInds.length} مؤشرات</span>
+      <span class="std-chev" id="std-chev-${s.id}">▾</span>
+    </div>`;
+  card.appendChild(hdr);
+  const panel = document.createElement('div');
+  panel.className = 'inds-panel';
+  panel.id = 'std-panel-'+s.id;
+  s.indicators.forEach(ind => panel.appendChild(buildIndRow(ind, s.color)));
+  card.appendChild(panel);
+  return card;
+}
+
+function buildIndRow(ind, color) {
+  const row = document.createElement('div');
+  row.className = 'ind-row'+(ind.priv?' priv':'');
+  row.dataset.code = ind.code;
+  if (ind.priv) row.dataset.priv = '1';
+  if (ind.priv && schoolType==='gov') row.classList.add('hidden-ind');
+
+  const privTag = ind.priv ? '<span class="ptag">أهلية/عالمية</span>' : '';
+  const top = document.createElement('div');
+  top.className = 'ind-top';
+  top.innerHTML = `
+    <span class="ind-code" style="background:${color}">${ind.code}</span>
+    <span class="ind-text">${privTag}${ind.txt}</span>`;
+  row.appendChild(top);
+  row.appendChild(buildEvidenceSection(ind.code, color));
+  return row;
+}
+
+// ════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════
+function setActiveNav(key) {
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const el = document.getElementById('nav-'+(key));
+  if (el) el.classList.add('active');
+}
+
+function hideAll() {
+  document.getElementById('home-view').style.display='none';
+  document.querySelectorAll('.domain-view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('settings-view').classList.remove('active');
+  document.getElementById('audit-view').classList.remove('active');
+  document.getElementById('backup-view').classList.remove('active');
+}
+
+function showHome() {
+  currentView='home';
+  setActiveNav('home');
+  hideAll();
+  document.getElementById('home-view').style.display='block';
+  if (openStdId) { closeStd(openStdId); openStdId=null; }
+  loadStats();
+}
+
+function showDomain(id) {
+  currentView=id;
+  setActiveNav('d'+id);
+  hideAll();
+  const view = document.getElementById('domain-view-'+id);
+  if (view) view.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function showSettings() {
+  currentView='settings';
+  setActiveNav('settings');
+  hideAll();
+  document.getElementById('settings-view').classList.add('active');
+  loadLicenseInfo();
+  loadSystemSettings();
+  loadEvidenceRootDisplay();
+}
+
+function showAudit() {
+  currentView='audit';
+  setActiveNav('audit');
+  hideAll();
+  document.getElementById('audit-view').classList.add('active');
+  loadAuditLog(1);
+}
+
+function showBackup() {
+  currentView='backup';
+  setActiveNav('backup');
+  hideAll();
+  document.getElementById('backup-view').classList.add('active');
+  loadBackupList();
+}
+
+function toggleStd(stdId) {
+  const panel = document.getElementById('std-panel-'+stdId);
+  const hdr   = document.getElementById('std-hdr-'+stdId);
+  const chev  = document.getElementById('std-chev-'+stdId);
+  const isOpen = panel.classList.contains('open');
+  if (openStdId && openStdId!==stdId) closeStd(openStdId);
+  if (isOpen) { closeStd(stdId); }
+  else {
+    panel.classList.add('open');
+    hdr.classList.add('open');
+    chev.style.transform='rotate(180deg)';
+    openStdId=stdId;
+    panel.querySelectorAll('.ind-row:not(.hidden-ind)').forEach(row=>{
+      const code=row.dataset.code;
+      if (code) loadFiles(code);
+    });
+  }
+}
+
+function closeStd(stdId) {
+  const panel=document.getElementById('std-panel-'+stdId);
+  const hdr=document.getElementById('std-hdr-'+stdId);
+  const chev=document.getElementById('std-chev-'+stdId);
+  if(panel)panel.classList.remove('open');
+  if(hdr)hdr.classList.remove('open');
+  if(chev)chev.style.transform='';
+  if(openStdId===stdId)openStdId=null;
+}
+
+// ════════════════════════════════════════════════════════════
+// SCHOOL TYPE
+// ════════════════════════════════════════════════════════════
+function setType(t, btn) {
+  schoolType=t;
+  document.querySelectorAll('.tog-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.ind-row[data-priv="1"]').forEach(row=>row.classList.toggle('hidden-ind',t==='gov'));
+  document.getElementById('type-hint').textContent=t==='gov'?'49 مؤشرًا للمدارس الحكومية':'52 مؤشرًا للمدارس الأهلية والعالمية';
+  DOMAINS.forEach(d=>d.standards.forEach(s=>{
+    const el=document.getElementById('std-count-'+s.id);
+    if(el){const v=s.indicators.filter(i=>!(i.priv&&t==='gov'));el.textContent=v.length+' مؤشرات';}
+  }));
+}
+
+// ════════════════════════════════════════════════════════════
+// SETTINGS PAGE
+// ════════════════════════════════════════════════════════════
+async function pickEvidenceRoot() {
+  if (window.electronAPI && window.electronAPI.openFileDialog) {
+    const result = await window.electronAPI.openFileDialog({
+      properties: ['openDirectory'],
+      title: 'اختر مجلد الشواهد والأدلة',
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+      const chosen = result.filePaths[0];
+      await setEvidenceRoot(chosen);
+    }
+  } else {
+    const p = prompt('أدخل مسار مجلد الشواهد:');
+    if (p) await setEvidenceRoot(p);
+  }
+}
+
+async function setEvidenceRoot(rootPath) {
+  const r = await fetch(`${API}/api/school`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ evidence_root: rootPath }),
+  });
+  if (r.ok) {
+    document.getElementById('ev-root-display').value = rootPath;
+    document.getElementById('ev-root-status').textContent = '✅ تم تحديث مجلد الشواهد. سيتم مزامنة الملفات فوراً.';
+    showToast('✅ تم تغيير مجلد الشواهد', 'success');
+    await pingServer();
+    loadStats();
+  }
+}
+
+async function resetEvidenceRoot() {
+  if (!confirm('هل تريد إعادة تعيين مجلد الشواهد إلى المسار الافتراضي؟')) return;
+  const r = await fetch(`${API}/api/school`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ evidence_root: '' }),
+  });
+  if (r.ok) {
+    document.getElementById('ev-root-display').value = '';
+    document.getElementById('ev-root-status').textContent = '↩ تم الرجوع إلى المسار الافتراضي.';
+    showToast('تم إعادة التعيين');
+    await pingServer();
+  }
+}
+
+async function loadEvidenceRootDisplay() {
+  try {
+    const r = await fetch(`${API}/api/structure`);
+    const d = await r.json();
+    const el = document.getElementById('ev-root-display');
+    if (el) el.value = d.evidenceRoot || '';
+  } catch {}
+}
+
+async function saveSettings() {
+  const name  = document.getElementById('set-name').value.trim();
+  const stage = document.getElementById('set-stage').value;
+  const admin = document.getElementById('set-admin').value.trim();
+  const num   = document.getElementById('set-num').value.trim();
+  const r = await fetch(`${API}/api/school`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ name, stage, admin_name: admin, ministry_num: num }),
+  });
+  if (r.ok) {
+    // Also update info bar
+    document.getElementById('sn').value=name;
+    document.getElementById('sstage').value=stage;
+    document.getElementById('sreg').value=admin;
+    document.getElementById('snum').value=num;
+    document.getElementById('hdr-school-name').textContent = name || 'اسم المدرسة';
+    document.getElementById('hdr-school-sub').textContent = admin + (num ? ' · ' + num : '');
+    showToast('✅ تم حفظ البيانات', 'success');
+  }
+}
+
+async function loadSystemSettings() {
+  try {
+    const data = await fetch(`${API}/api/settings`).then(r=>r.json());
+    const ab = document.getElementById('set-auto-backup');
+    if (ab) ab.value = data.auto_backup_interval || 'none';
+    const be = document.getElementById('set-backup-exit');
+    if (be) be.value = data.backup_on_exit || 'false';
+  } catch {}
+}
+
+async function saveSystemSettings() {
+  const settings = {
+    auto_backup_interval: document.getElementById('set-auto-backup').value,
+    backup_on_exit: document.getElementById('set-backup-exit').value,
+  };
+  const r = await fetch(`${API}/api/settings`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(settings),
+  });
+  if (r.ok) showToast('✅ تم حفظ الإعدادات', 'success');
+}
+
+async function autoSaveSchool() {
+  const name  = document.getElementById('sn').value;
+  const stage = document.getElementById('sstage').value;
+  const admin = document.getElementById('sreg').value;
+  const num   = document.getElementById('snum').value;
+  await fetch(`${API}/api/school`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ name, stage, admin_name: admin, ministry_num: num }),
+  });
+  document.getElementById('hdr-school-name').textContent = name || 'اسم المدرسة';
+  document.getElementById('hdr-school-sub').textContent = admin + (num ? ' · ' + num : '');
+}
+
+async function loadLicenseInfo() {
+  try {
+    const data = await fetch(`${API}/api/license/status`).then(r=>r.json());
+    const panel = document.getElementById('license-info-panel');
+    if (data.valid) {
+      panel.innerHTML = `
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <span style="font-size:1.2rem">✅</span>
+          <strong style="color:var(--success)">الترخيص ساري</strong>
+        </div>
+        <div>مفتاح الترخيص: <code>${data.key || '-'}</code></div>
+        <div>انتهاء الصلاحية: ${data.expires || 'غير محدد (دائم)'}</div>
+        <div>معرّف الجهاز: <code style="font-size:.7rem">${data.machineId}</code></div>`;
+    } else {
+      panel.innerHTML = `<div style="color:var(--danger)">❌ الترخيص غير صالح — السبب: ${data.reason}</div>
+        <div style="margin-top:8px">معرّف الجهاز: <code style="font-size:.7rem">${data.machineId}</code></div>`;
+    }
+  } catch {}
+}
+
+// ════════════════════════════════════════════════════════════
+// AUDIT LOG
+// ════════════════════════════════════════════════════════════
+const ACTION_LABELS = {
+  file_uploaded: { label:'رفع ملف', cls:'upload' },
+  file_deleted:  { label:'حذف ملف', cls:'delete' },
+  file_detected: { label:'اكتشاف ملف', cls:'upload' },
+  settings_changed: { label:'تغيير إعدادات', cls:'settings' },
+  logo_uploaded: { label:'رفع شعار', cls:'settings' },
+  backup_created: { label:'نسخة احتياطية', cls:'backup' },
+  license_activated: { label:'تفعيل ترخيص', cls:'license' },
+  license_failed: { label:'ترخيص مرفوض', cls:'delete' },
+  app_started: { label:'تشغيل النظام', cls:'default' },
+};
+
+async function loadAuditLog(page=1) {
+  auditPage = page;
+  try {
+    const data = await fetch(`${API}/api/audit?page=${page}&limit=30`).then(r=>r.json());
+    const tbody = document.getElementById('audit-tbody');
+    tbody.innerHTML = data.logs.map(log => {
+      const action = ACTION_LABELS[log.action] || { label: log.action, cls: 'default' };
+      const ts = new Date(log.timestamp).toLocaleString('ar-SA');
+      return `<tr>
+        <td>${log.id}</td>
+        <td style="white-space:nowrap;font-size:.7rem">${ts}</td>
+        <td><span class="audit-badge ${action.cls}">${action.label}</span></td>
+        <td>${log.target || '-'}</td>
+        <td><code style="font-size:.65rem">${log.indicator || '-'}</code></td>
+        <td style="font-size:.72rem;color:var(--muted)">${log.details || ''}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">لا توجد سجلات</td></tr>';
+
+    // Pagination
+    const pag = document.getElementById('audit-pagination');
+    const pages = data.pages;
+    pag.innerHTML = `<span style="color:var(--muted)">إجمالي: ${data.total}</span>`;
+    for (let p = 1; p <= pages; p++) {
+      pag.innerHTML += `<button class="${p===page?'active':''}" onclick="loadAuditLog(${p})">${p}</button>`;
+    }
+  } catch {}
+}
+
+async function clearAuditLog() {
+  if (!confirm('هل تريد مسح سجل الأحداث بالكامل؟')) return;
+  await fetch(`${API}/api/audit`, { method:'DELETE' });
+  showToast('✅ تم مسح السجل');
+  loadAuditLog(1);
+}
+
+// ════════════════════════════════════════════════════════════
+// BACKUP
+// ════════════════════════════════════════════════════════════
+async function createBackupNow() {
+  showToast('⏳ جارٍ إنشاء النسخة الاحتياطية...');
+  try {
+    const data = await fetch(`${API}/api/backup`, { method:'POST' }).then(r=>r.json());
+    if (data.success) {
+      showToast(`✅ تم: ${data.filename} (${data.size})`, 'success');
+      if (currentView === 'backup') loadBackupList();
+    }
+  } catch (err) {
+    showToast('❌ فشل إنشاء النسخة: ' + err.message, 'error');
+  }
+}
+
+async function loadBackupList() {
+  try {
+    const data = await fetch(`${API}/api/backups`).then(r=>r.json());
+    const list = document.getElementById('backup-list');
+    if (data.backups.length === 0) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:.8rem;padding:8px">لا توجد نسخ احتياطية بعد</div>';
+      return;
+    }
+    list.innerHTML = data.backups.map(b => `
+      <div class="backup-item">
+        <div class="backup-item-icon">📦</div>
+        <div class="backup-item-info">
+          <div class="backup-item-name">${b.filename}</div>
+          <div class="backup-item-meta">${new Date(b.created_at).toLocaleString('ar-SA')} · ${b.sizeFormatted} · ${b.type === 'manual' ? 'يدوي' : b.type === 'auto' ? 'تلقائي' : 'إغلاق'}</div>
+        </div>
+        <div class="backup-item-actions">
+          ${b.exists ? `<a class="btn-sm success" href="${API}/api/backup/download/${b.filename}" download>⬇ تحميل</a>` : '<span style="font-size:.7rem;color:var(--danger)">غير موجود</span>'}
+        </div>
+      </div>`).join('');
+  } catch {}
+}
+
+// ════════════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════════════
+let toastTimeout;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ════════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>

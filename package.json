@@ -1,0 +1,99 @@
+{
+  "name": "school-accreditation-system",
+  "productName": "نظام التقويم والاعتماد المدرسي",
+  "version": "1.0.0",
+  "description": "نظام سطح مكتب لإدارة التقويم والاعتماد المدرسي وأدلة الشواهد",
+  "author": "Your Company Name",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "electron/main/main.js",
+  "homepage": "./",
+  "scripts": {
+    "start": "cross-env NODE_ENV=development electron .",
+    "dev": "cross-env NODE_ENV=development electron . --dev",
+    "verify:server": "node scripts/smoke-test.js",
+    "verify:viewer": "node scripts/viewer-integration-test.js",
+    "verify:part2": "node scripts/part2-integration-test.js",
+    "verify:part2-remaining": "node scripts/part2-remaining-test.js",
+    "verify:completion": "node scripts/completion-engine-test.js",
+    "lint": "echo \"(no linter configured)\"",
+    "pack": "electron-builder --dir",
+    "build": "electron-builder --win",
+    "build:portable": "electron-builder --win portable",
+    "dist": "npm run build",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "chokidar": "^3.6.0",
+    "electron-log": "^5.1.7",
+    "electron-window-state": "^5.0.3",
+    "express": "^4.19.2",
+    "multer": "^2.2.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^30.0.9",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.yourcompany.school-accreditation",
+    "productName": "نظام التقويم والاعتماد المدرسي",
+    "copyright": "Copyright © 2026",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "server/**/*",
+      "app/**/*",
+      "package.json",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/evidence-template",
+        "to": "evidence-template",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "التقويم والاعتماد المدرسي",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
+    }
+  }
+}

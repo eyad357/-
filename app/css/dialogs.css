@@ -1,0 +1,49 @@
+/* ════════════════════════════════════════════════════════════
+   RENAME + PROPERTIES DIALOGS — Part 2 remainder
+   Additive stylesheet, reuses existing app CSS variables.
+   ════════════════════════════════════════════════════════════ */
+
+.dlg-overlay{
+  position:fixed; inset:0; z-index:5500; background:rgba(10,20,35,.55);
+  display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .15s;
+  font-family:'Tajawal',sans-serif; direction:rtl;
+}
+.dlg-overlay.open{ opacity:1; }
+.dlg-box{
+  background:var(--card); border-radius:12px; width:380px; max-width:92vw; box-shadow:0 16px 44px rgba(0,0,0,.35);
+  transform:translateY(10px); transition:transform .15s; overflow:hidden;
+}
+.dlg-overlay.open .dlg-box{ transform:translateY(0); }
+.dlg-box-wide{ width:480px; }
+
+.dlg-header{
+  display:flex; align-items:center; justify-content:space-between; padding:14px 18px;
+  background:linear-gradient(135deg,var(--primary),var(--pl)); color:#fff; font-weight:800; font-size:.88rem;
+}
+.dlg-header button{ background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); color:#fff; border-radius:6px; width:26px; height:26px; cursor:pointer; }
+
+.dlg-body{ padding:16px 18px; max-height:60vh; overflow-y:auto; }
+.dlg-label{ font-size:.72rem; font-weight:700; color:var(--muted); display:block; margin-bottom:6px; }
+.dlg-rename-row{ display:flex; align-items:center; gap:6px; }
+.dlg-input{
+  flex:1 1 auto; border:1px solid var(--bdr); border-radius:8px; padding:9px 12px; font-size:.86rem;
+  font-family:'Tajawal',sans-serif; color:var(--text); outline:none;
+}
+.dlg-input:focus{ border-color:var(--primary); }
+.dlg-rename-ext{ color:var(--muted); font-weight:700; font-size:.82rem; }
+.dlg-error{ color:#c62828; font-size:.74rem; font-weight:700; margin-top:8px; }
+
+.dlg-prop-grid{ display:flex; flex-direction:column; gap:2px; }
+.dlg-prop-row{ display:flex; justify-content:space-between; gap:14px; padding:7px 0; border-bottom:1px dashed var(--bdr); font-size:.78rem; }
+.dlg-prop-k{ color:var(--muted); font-weight:700; flex:0 0 auto; }
+.dlg-prop-v{ font-weight:600; color:var(--text); text-align:left; word-break:break-word; }
+.dlg-path{ font-family:'Consolas','Courier New',monospace; font-size:.68rem; direction:ltr; unicode-bidi:plaintext; }
+.dlg-prop-extra{ margin-top:8px; }
+.dlg-prop-loading{ color:var(--muted); font-size:.74rem; padding:8px 0; text-align:center; }
+
+.dlg-footer{ display:flex; justify-content:flex-end; gap:8px; padding:12px 18px; border-top:1px solid var(--bdr); }
+.dlg-btn{ border-radius:8px; padding:8px 16px; font-size:.8rem; font-weight:700; cursor:pointer; font-family:'Tajawal',sans-serif; border:none; }
+.dlg-btn-primary{ background:var(--primary); color:#fff; }
+.dlg-btn-primary:hover{ background:var(--pl); }
+.dlg-btn-secondary{ background:var(--surf); color:var(--text); border:1px solid var(--bdr); }
+.dlg-btn-secondary:hover{ background:var(--bdr); }
