@@ -78,14 +78,15 @@ const Thumbnails = (function () {
 
   async function generatePdfThumb(url) {
     if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js unavailable');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/vendor/pdfjs/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/vendor/pdfjs/pdf.worker.min.js';
     const doc = await pdfjsLib.getDocument({
       url,
       cMapUrl: 'js/vendor/pdfjs/cmaps/', cMapPacked: true,
       standardFontDataUrl: 'js/vendor/pdfjs/standard_fonts/',
-      // See app/js/viewer.js renderPdf() — reverted from a forced
-      // disableFontFace:true, which caused missing numbers/symbols in
-      // other PDFs. See PDF-RENDERING-NOTES.md for the open investigation.
+      // See app/js/viewer.js renderPdf() for the full diagnosis. Reverted
+      // back to false: forcing true fixed garbled Arabic text but broke
+      // numbers/percentages in other PDFs (confirmed live). Keep this in
+      // sync with viewer.js's setting.
       disableFontFace: false,
       useSystemFonts: true,
       fontExtraProperties: true,

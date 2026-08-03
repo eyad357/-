@@ -589,7 +589,7 @@ const Viewer = (function () {
     state.searchTarget = null; // set once text layers exist
 
     if (typeof pdfjsLib === 'undefined') { showError('تعذّر تحميل عارض PDF', 'مكوّن العرض غير متاح.'); return; }
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/vendor/pdfjs/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/vendor/pdfjs/pdf.worker.min.js';
 
     try {
       const buf = await fetchBytes();
@@ -597,20 +597,18 @@ const Viewer = (function () {
         data: buf,
         cMapUrl: 'js/vendor/pdfjs/cmaps/', cMapPacked: true,
         standardFontDataUrl: 'js/vendor/pdfjs/standard_fonts/',
-        // NOTE: disableFontFace was previously forced to `true` as a
-        // hypothesis-driven fix for garbled Arabic text in a small set of
-        // PDFs. That was never verified against an actual failing file —
-        // only screenshots — and it caused a real regression (missing
-        // numbers/symbols in other PDFs), because forcing pdf.js's
-        // internal glyph-path renderer for *every* font overrides pdf.js's
-        // own per-font fallback heuristics, which are more broadly tested
-        // than a single global override (this is also the default used by
-        // Firefox's built-in PDF viewer across huge numbers of real-world
-        // Arabic/RTL documents daily). Reverted to the default/false here
-        // to restore that broader compatibility. See PDF-RENDERING-NOTES.md
-        // at the project root for the outstanding Arabic-rendering
-        // investigation and what's needed to close it out with evidence
-        // instead of another guess.
+        // NOTE: disableFontFace:true was tried again after isolating the
+        // garbled-text bug with real evidence (affects every PDF, not the
+        // text layer, not GPU-wide). It DID fix the garbled Arabic text,
+        // but reproduced the exact same regression as the original
+        // unverified attempt: numbers/percentages (e.g. "35%") disappear
+        // from some PDFs, confirmed live with a screenshot. So a single
+        // global on/off flag is confirmed NOT viable for this project's
+        // documents — the fix needs to be scoped per-font (e.g. only force
+        // glyph-path rendering for the specific embedded font(s) that fail
+        // native rendering, based on inspecting an actual failing PDF's
+        // font program), not applied to the whole file. Reverted to false
+        // to restore the safer default. See PDF-RENDERING-NOTES.md.
         disableFontFace: false,
         useSystemFonts: true,
         fontExtraProperties: true,

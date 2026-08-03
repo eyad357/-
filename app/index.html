@@ -663,13 +663,93 @@ body{font-family:'Tajawal',sans-serif;background:var(--surf);color:var(--text);d
 
 <!-- Phase 1.5: Professional Document Viewer — vendor libraries (all served
      same-origin from app/js/vendor, no CDN, no CSP changes needed) -->
-<!-- Hotfix: pdf.js upgraded to 4.10.38. The upstream project stopped
-     shipping a classic-script/UMD build after v3, so it's now loaded as an
-     ES module and bridged onto window.pdfjsLib — every existing call site
-     (viewer.js, thumbnails.js, dialogs.js) keeps using the same global
-     exactly as before and needed no changes. This is loaded before the
-     classic scripts below, but since pdfjsLib is only ever touched lazily
-     (when a PDF is actually opened), load order/timing here is safe. -->
+<!-- pdf.js is on 6.1.200. The upstream project stopped shipping a
+     classic-script/UMD build after v3, so it's loaded as an ES module and
+     bridged onto window.pdfjsLib — every existing call site (viewer.js,
+     thumbnails.js, dialogs.js) keeps using the same global exactly as
+     before and needed no changes. This is loaded before the classic
+     scripts below, but since pdfjsLib is only ever touched lazily (when a
+     PDF is actually opened), load order/timing here is safe. -->
+<!-- Runtime-feature safety net: pdf.js 6.x calls Promise.try (a very
+     recent JS addition) with no fallback of its own. Electron's bundled
+     Chromium version varies by build and by how current an install is, so
+     this polyfills it unconditionally before pdf.js (or anything else)
+     runs, rather than depending on any specific Electron/Chromium version
+     having it natively. Must stay a classic (non-module) script placed
+     before the module script below, since classic scripts run first. -->
+<script>
+  if (typeof Promise.try !== 'function') {
+    Promise.try = function (fn, ...args) {
+      return new Promise((resolve) => resolve(fn(...args)));
+    };
+  }
+</script>
+<!-- Runtime-feature safety net #2: pdf.js 6.x also relies on the Uint8Array
+     to/from hex & base64 methods (Uint8Array.prototype.toHex/fromHex,
+     toBase64/fromBase64, setFromHex/setFromBase64) — another very recent
+     JS-engine addition with no fallback of its own. Same root cause as the
+     Promise.try gap above: Electron 30's bundled Chromium (124) predates
+     it. Polyfilled unconditionally here so this keeps working regardless
+     of which Electron/Chromium build ends up installed on a given machine. -->
+<script>
+  (function () {
+    function toHex(bytes) {
+      let hex = '';
+      for (let i = 0; i < bytes.length; i++) hex += bytes[i].toString(16).padStart(2, '0');
+      return hex;
+    }
+    function fromHex(hex) {
+      if (hex.length % 2 !== 0) throw new SyntaxError('Invalid hex string length');
+      const bytes = new Uint8Array(hex.length / 2);
+      for (let i = 0; i < bytes.length; i++) {
+        const byte = parseInt(hex.substr(i * 2, 2), 16);
+        if (Number.isNaN(byte)) throw new SyntaxError('Invalid hex string');
+        bytes[i] = byte;
+      }
+      return bytes;
+    }
+    function toBase64(bytes) {
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    }
+    function fromBase64(base64) {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    }
+
+    if (typeof Uint8Array.prototype.toHex !== 'function') {
+      Uint8Array.prototype.toHex = function () { return toHex(this); };
+    }
+    if (typeof Uint8Array.fromHex !== 'function') {
+      Uint8Array.fromHex = function (hex) { return fromHex(hex); };
+    }
+    if (typeof Uint8Array.prototype.setFromHex !== 'function') {
+      Uint8Array.prototype.setFromHex = function (hex) {
+        const decoded = fromHex(hex);
+        const written = Math.min(decoded.length, this.length);
+        this.set(decoded.subarray(0, written));
+        return { read: written * 2, written };
+      };
+    }
+    if (typeof Uint8Array.prototype.toBase64 !== 'function') {
+      Uint8Array.prototype.toBase64 = function () { return toBase64(this); };
+    }
+    if (typeof Uint8Array.fromBase64 !== 'function') {
+      Uint8Array.fromBase64 = function (base64) { return fromBase64(base64); };
+    }
+    if (typeof Uint8Array.prototype.setFromBase64 !== 'function') {
+      Uint8Array.prototype.setFromBase64 = function (base64) {
+        const decoded = fromBase64(base64);
+        const written = Math.min(decoded.length, this.length);
+        this.set(decoded.subarray(0, written));
+        return { read: base64.length, written };
+      };
+    }
+  })();
+</script>
 <script type="module">
   import * as pdfjsLib from './js/vendor/pdfjs/pdf.min.js';
   window.pdfjsLib = pdfjsLib;
