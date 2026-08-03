@@ -192,7 +192,7 @@ const Dialogs = (function () {
         });
         container.innerHTML = `<div class="dlg-prop-row"><span class="dlg-prop-k">المدة</span><span class="dlg-prop-v">${fmtDuration(duration)}</span></div>`;
       } else if (file.category === 'pdf' && typeof pdfjsLib !== 'undefined') {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/vendor/pdfjs/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/vendor/pdfjs/pdf.worker.min.js';
         const doc = await pdfjsLib.getDocument({ url }).promise;
         const pages = doc.numPages;
         doc.destroy();
