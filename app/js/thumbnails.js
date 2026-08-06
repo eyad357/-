@@ -77,33 +77,11 @@ const Thumbnails = (function () {
   }
 
   async function generatePdfThumb(url) {
-    if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js unavailable');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/vendor/pdfjs/pdf.worker.min.js';
-    const doc = await pdfjsLib.getDocument({
-      url,
-      cMapUrl: 'js/vendor/pdfjs/cmaps/', cMapPacked: true,
-      standardFontDataUrl: 'js/vendor/pdfjs/standard_fonts/',
-      // See app/js/viewer.js renderPdf() for the full diagnosis. Reverted
-      // back to false: forcing true fixed garbled Arabic text but broke
-      // numbers/percentages in other PDFs (confirmed live). Keep this in
-      // sync with viewer.js's setting.
-      disableFontFace: false,
-      useSystemFonts: true,
-      fontExtraProperties: true,
-      isEvalSupported: true,
-    }).promise;
-    try {
-      const page = await doc.getPage(1);
-      const baseViewport = page.getViewport({ scale: 1 });
-      const scale = 160 / baseViewport.width;
-      const viewport = page.getViewport({ scale });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width; canvas.height = viewport.height;
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-      return canvas.toDataURL('image/jpeg', 0.78);
-    } finally {
-      doc.destroy();
-    }
+    // Worker bootstrap, cmap/font paths, and version pinning all live in
+    // PDFEngine (app/js/pdf-engine.js) — the single source of truth
+    // shared with viewer.js and dialogs.js.
+    if (typeof PDFEngine === 'undefined') throw new Error('pdf.js unavailable');
+    return PDFEngine.renderThumbnailDataUrl({ url }, 160, 0.78);
   }
 
   function attach(card, code, file) {
