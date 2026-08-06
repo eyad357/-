@@ -191,11 +191,14 @@ const Dialogs = (function () {
           setTimeout(() => reject(new Error('timeout')), 8000);
         });
         container.innerHTML = `<div class="dlg-prop-row"><span class="dlg-prop-k">المدة</span><span class="dlg-prop-v">${fmtDuration(duration)}</span></div>`;
-      } else if (file.category === 'pdf' && typeof pdfjsLib !== 'undefined') {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/vendor/pdfjs/pdf.worker.min.js';
-        const doc = await pdfjsLib.getDocument({ url }).promise;
+      } else if (file.category === 'pdf' && typeof PDFEngine !== 'undefined') {
+        // Routed through PDFEngine (app/js/pdf-engine.js) — the single
+        // source of truth for pdf.js worker bootstrap and version, shared
+        // with viewer.js and thumbnails.js. Only page count is needed
+        // here, so openDocumentLite() skips cmap/font loading for speed.
+        const doc = await PDFEngine.openDocumentLite({ url });
         const pages = doc.numPages;
-        doc.destroy();
+        PDFEngine.destroyDocument(doc);
         container.innerHTML = `<div class="dlg-prop-row"><span class="dlg-prop-k">عدد الصفحات</span><span class="dlg-prop-v">${pages}</span></div>`;
       } else {
         container.innerHTML = '';

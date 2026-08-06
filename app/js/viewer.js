@@ -256,7 +256,9 @@ const Viewer = (function () {
   function cleanupPrevious() {
     if (!state) return;
     state.objectUrls.forEach(u => { try { URL.revokeObjectURL(u); } catch {} });
-    if (state.pdfDoc) { try { state.pdfDoc.destroy(); } catch {} }
+    if (state.pdfDoc && typeof PDFEngine !== 'undefined') PDFEngine.destroyDocument(state.pdfDoc);
+    else if (state.pdfDoc) { try { state.pdfDoc.destroy(); } catch {} }
+    state.pdfDoc = null;
     if (state.mediaCleanup) { try { state.mediaCleanup(); } catch {} }
     const v = dom && dom.content.querySelector('video, audio');
     if (v) { try { v.pause(); v.src = ''; v.load(); } catch {} }
@@ -588,33 +590,15 @@ const Viewer = (function () {
 
     state.searchTarget = null; // set once text layers exist
 
-    if (typeof pdfjsLib === 'undefined') { showError('تعذّر تحميل عارض PDF', 'مكوّن العرض غير متاح.'); return; }
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/vendor/pdfjs/pdf.worker.min.js';
+    if (typeof PDFEngine === 'undefined') { showError('تعذّر تحميل عارض PDF', 'مكوّن العرض غير متاح.'); return; }
 
     try {
       const buf = await fetchBytes();
-      const loadingTask = pdfjsLib.getDocument({
-        data: buf,
-        cMapUrl: 'js/vendor/pdfjs/cmaps/', cMapPacked: true,
-        standardFontDataUrl: 'js/vendor/pdfjs/standard_fonts/',
-        // NOTE: disableFontFace:true was tried again after isolating the
-        // garbled-text bug with real evidence (affects every PDF, not the
-        // text layer, not GPU-wide). It DID fix the garbled Arabic text,
-        // but reproduced the exact same regression as the original
-        // unverified attempt: numbers/percentages (e.g. "35%") disappear
-        // from some PDFs, confirmed live with a screenshot. So a single
-        // global on/off flag is confirmed NOT viable for this project's
-        // documents — the fix needs to be scoped per-font (e.g. only force
-        // glyph-path rendering for the specific embedded font(s) that fail
-        // native rendering, based on inspecting an actual failing PDF's
-        // font program), not applied to the whole file. Reverted to false
-        // to restore the safer default. See PDF-RENDERING-NOTES.md.
-        disableFontFace: false,
-        useSystemFonts: true,
-        fontExtraProperties: true,
-        isEvalSupported: true,
-      });
-      const doc = await loadingTask.promise;
+      // All worker bootstrap, cmap/font paths, and version pinning live in
+      // PDFEngine (app/js/pdf-engine.js) — the single source of truth
+      // shared with thumbnails.js and dialogs.js. See that file's header
+      // comment for the Arabic-rendering disableFontFace note.
+      const doc = await PDFEngine.openDocument({ data: buf });
       state.pdfDoc = doc;
       dom.content.className = 'dv-content';
       dom.content.innerHTML = `<div class="dv-pdf-pages" id="dv-pdf-pages"></div>`;
@@ -632,8 +616,12 @@ const Viewer = (function () {
       const remembered = lastPdfPage.get(key);
       if (remembered && remembered > 1) setTimeout(() => goToPdfPage(remembered), 150);
     } catch (err) {
-      console.error(err);
-      showError('تعذّر فتح ملف PDF', 'الملف قد يكون تالفًا أو محميًا بكلمة مرور.');
+      // PDFEngine already logged technical detail via console.error and
+      // classified the error — the user only ever sees the friendly
+      // Arabic message, never a raw pdf.js/worker exception.
+      const friendlyTitle = err && err.friendlyTitle;
+      const friendlyDetail = err && err.friendlyDetail;
+      showError(friendlyTitle || 'تعذّر فتح ملف PDF', friendlyDetail || 'الملف قد يكون تالفًا أو محميًا بكلمة مرور.');
     }
   }
   // Lazy, viewport-driven page rendering: builds correctly-sized empty page
@@ -698,21 +686,13 @@ const Viewer = (function () {
       wrap.dataset.rendered = '1';
       wrap.classList.remove('dv-pdf-page-skeleton');
       const canvas = document.createElement('canvas');
-      // Render at full device-pixel-ratio resolution, not just the CSS size.
-      // Dense connected scripts (Arabic in particular) turn into an
-      // illegible, overlapping-looking smear when the browser has to
-      // upscale a low-res canvas on HiDPI/scaled displays — this is the
-      // root cause of the "broken" Arabic PDF rendering. Rendering at
-      // devicePixelRatio and letting CSS present it at the original size
-      // keeps every glyph — Arabic or Latin — sharp at any zoom level.
-      const outputScale = window.devicePixelRatio || 1;
-      canvas.width = Math.floor(viewport.width * outputScale);
-      canvas.height = Math.floor(viewport.height * outputScale);
-      canvas.style.width = viewport.width + 'px';
-      canvas.style.height = viewport.height + 'px';
-      const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
       wrap.insertBefore(canvas, wrap.firstChild.nextSibling); // after the page-label span
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport, transform }).promise;
+      // Rendering (incl. the devicePixelRatio scaling that keeps dense
+      // connected scripts like Arabic sharp instead of smeared) is
+      // centralized in PDFEngine.renderPageToCanvas so viewer.js,
+      // thumbnails.js, and any future PDF surface always scale pages the
+      // same way.
+      await PDFEngine.renderPageToCanvas(page, canvas, viewport).promise;
       await ensureTextLayer(entry);
     }
 
