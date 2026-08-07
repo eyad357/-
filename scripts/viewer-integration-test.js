@@ -61,8 +61,9 @@ Module._load = function (request, parent, isMain) { if (request === 'electron') 
   const assets = [
     ['/css/viewer.css', 'text/css'],
     ['/js/viewer.js', 'javascript'],
-    ['/js/vendor/pdfjs/pdf.min.js', 'javascript'],
-    ['/js/vendor/pdfjs/pdf.worker.min.js', 'javascript'],
+    ['/js/pdf-engine.js', 'javascript'],
+    ['/js/vendor/pdfjs/pdf.min.mjs', 'javascript'],
+    ['/js/vendor/pdfjs/pdf.worker.min.mjs', 'javascript'],
     ['/js/vendor/mammoth/mammoth.browser.min.js', 'javascript'],
     ['/js/vendor/xlsx/xlsx.full.min.js', 'javascript'],
     ['/js/vendor/jszip/jszip.min.js', 'javascript'],

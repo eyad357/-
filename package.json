@@ -31,10 +31,13 @@
     "express": "^4.19.2",
     "multer": "^2.2.0"
   },
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "electron": "^30.0.9",
-    "electron-builder": "^24.13.3"
+    "electron": "^43.3.0",
+    "electron-builder": "^26.15.3"
   },
   "build": {
     "appId": "com.yourcompany.school-accreditation",
@@ -49,6 +52,7 @@
       "electron/**/*",
       "server/**/*",
       "app/**/*",
+      "splash/**/*",
       "package.json",
       "!**/*.map"
     ],

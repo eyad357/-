@@ -28,7 +28,7 @@
 
    Upgrading pdf.js in the future
    -------------------------------
-   1. Replace BOTH app/js/vendor/pdfjs/pdf.min.js and pdf.worker.min.js
+   1. Replace BOTH app/js/vendor/pdfjs/pdf.min.mjs and pdf.worker.min.mjs
       with the matching pair from the same pdf.js release (never mix
       versions between the two files).
    2. Update PDFJS_VERSION below to match (used only for diagnostics/
@@ -44,14 +44,18 @@ const PDFEngine = (function () {
 
   // ── 1. SINGLE SOURCE OF TRUTH: version + asset locations ──────────
   // Must match the version actually shipped in app/js/vendor/pdfjs/.
-  const PDFJS_VERSION = '4.10.38';
+  // Upgraded 2026 as part of the Electron 43 migration — see
+  // PDF-ARCHITECTURE-REVIEW.md for why (pdf.js 6.x's worker relies on
+  // Map.prototype.getOrInsertComputed, a JS engine feature only present
+  // in the Chromium version Electron 43 bundles).
+  const PDFJS_VERSION = '6.2.108';
 
   const ASSET_BASE = 'js/vendor/pdfjs/';
 
   // Every option pdf.js's getDocument() needs, in one object. Nothing
   // else in the app is allowed to build this object itself.
   const CONFIG = Object.freeze({
-    workerSrc: ASSET_BASE + 'pdf.worker.min.js',
+    workerSrc: ASSET_BASE + 'pdf.worker.min.mjs',
     cMapUrl: ASSET_BASE + 'cmaps/',
     cMapPacked: true,
     standardFontDataUrl: ASSET_BASE + 'standard_fonts/',
@@ -175,12 +179,29 @@ const PDFEngine = (function () {
 
   // ── 5. MEMORY MANAGEMENT ────────────────────────────────────────────
   // Every caller that opens a document MUST release it through this
-  // (doc.destroy() releases the worker-side document and its caches;
-  // skipping it is exactly how "schools open hundreds of PDFs" turns
-  // into a worker/memory leak over a long session).
+  // (releases the worker-side document and its caches; skipping it is
+  // exactly how "schools open hundreds of PDFs" turns into a
+  // worker/memory leak over a long session).
+  //
+  // pdf.js 6.x removed the PDFDocumentProxy.destroy() convenience method
+  // that existed in 4.x — destroy() now lives on the loading task, one
+  // level up (doc.loadingTask.destroy()). Verified against the actual
+  // 6.2.108 build (not assumed from changelogs) via a live render test —
+  // see PDF-ARCHITECTURE-REVIEW.md. Falls back to the old shape too, so
+  // this keeps working if a future pdf.js release moves it back.
   function destroyDocument(doc) {
     if (!doc) return;
-    try { doc.destroy(); } catch (err) { console.warn('[PDFEngine] destroyDocument failed', err); }
+    try {
+      if (doc.loadingTask && typeof doc.loadingTask.destroy === 'function') {
+        doc.loadingTask.destroy();
+      } else if (typeof doc.destroy === 'function') {
+        doc.destroy();
+      } else {
+        console.warn('[PDFEngine] destroyDocument: no destroy() reachable on this pdf.js build\'s document object');
+      }
+    } catch (err) {
+      console.warn('[PDFEngine] destroyDocument failed', err);
+    }
   }
 
   // ── 6. SHARED RENDER HELPERS ─────────────────────────────────────────

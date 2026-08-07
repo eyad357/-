@@ -663,15 +663,18 @@ body{font-family:'Tajawal',sans-serif;background:var(--surf);color:var(--text);d
 
 <!-- Phase 1.5: Professional Document Viewer — vendor libraries (all served
      same-origin from app/js/vendor, no CDN, no CSP changes needed) -->
-<!-- Hotfix: pdf.js upgraded to 4.10.38. The upstream project stopped
-     shipping a classic-script/UMD build after v3, so it's now loaded as an
-     ES module and bridged onto window.pdfjsLib — every existing call site
-     (viewer.js, thumbnails.js, dialogs.js) keeps using the same global
-     exactly as before and needed no changes. This is loaded before the
-     classic scripts below, but since pdfjsLib is only ever touched lazily
-     (when a PDF is actually opened), load order/timing here is safe. -->
+<!-- pdf.js is pinned to 6.2.108 (Electron 43 / Chromium 150 migration,
+     see PDF-ARCHITECTURE-REVIEW.md). pdf.min.mjs and pdf.worker.min.mjs
+     are copied verbatim from the same npm pdfjs-dist@6.2.108 package —
+     never source them from two different places or versions. The
+     upstream project only ships ES module builds, so it's loaded as a
+     module and bridged onto window.pdfjsLib — every existing call site
+     goes through PDFEngine (app/js/pdf-engine.js), which is the only code
+     allowed to touch this global. Loaded before the classic scripts
+     below, but since pdfjsLib is only ever touched lazily (when a PDF is
+     actually opened), load order/timing here is safe. -->
 <script type="module">
-  import * as pdfjsLib from './js/vendor/pdfjs/pdf.min.js';
+  import * as pdfjsLib from './js/vendor/pdfjs/pdf.min.mjs';
   window.pdfjsLib = pdfjsLib;
 </script>
 <script src="js/vendor/mammoth/mammoth.browser.min.js"></script>
