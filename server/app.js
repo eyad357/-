@@ -88,6 +88,11 @@ async function createApp() {
       // decodes JPEG2000/JPX images (used by some scanners) via a WASM
       // module.
       "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; " +
+      // Explicit worker-src (rather than relying on the script-src
+      // fallback) for the PDF engine's module Worker (pdf.worker.min.mjs,
+      // created with { type: "module" } by pdf.js 6.x) — see
+      // PDF-ARCHITECTURE-REVIEW.md.
+      "worker-src 'self'; " +
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
       "font-src 'self' https://fonts.gstatic.com; " +
       "img-src 'self' data: blob: http://localhost:* http://127.0.0.1:*; " +
