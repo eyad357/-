@@ -19,11 +19,14 @@ for f in "${old_files[@]}"; do
 done
 
 echo ""
-echo "Done. Old pdf.js 4.10.38 files removed."
+echo "Done. Old pdf.js 4.10.38 files removed (if present)."
 echo "New files in place: app/js/vendor/pdfjs/pdf.min.mjs, pdf.worker.min.mjs (6.2.108)"
 echo ""
 echo "Next steps:"
 echo "  rm -rf node_modules                     # old node_modules pinned electron@30"
 echo "  npm ci                                   # installs exactly what's pinned in the shipped package-lock.json (electron 43.3.0 + electron-builder 26.x)"
-echo "  npm run verify:server && npm run verify:viewer && npm run verify:part2"
+echo "  npm run verify:server"
+echo "  npm run verify:viewer"
+echo "  npm run verify:part2"
+echo "  npm run verify:pdf-render-order          # new — guards the DOM-attach-before-render bug fixed in this pass"
 echo "  npm run dev                              # sanity-check locally before packaging"

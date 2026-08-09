@@ -14,6 +14,7 @@
     "verify:server": "node scripts/smoke-test.js",
     "verify:viewer": "node scripts/viewer-integration-test.js",
     "verify:part2": "node scripts/part2-integration-test.js",
+    "verify:pdf-render-order": "node scripts/pdf-render-order-test.js",
     "verify:part2-remaining": "node scripts/part2-remaining-test.js",
     "verify:completion": "node scripts/completion-engine-test.js",
     "lint": "echo \"(no linter configured)\"",
