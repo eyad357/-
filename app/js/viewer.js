@@ -684,15 +684,15 @@ const Viewer = (function () {
       const { wrap, page, viewport } = entry;
       if (wrap.dataset.rendered === '1') return;
       wrap.dataset.rendered = '1';
-      wrap.classList.remove('dv-pdf-page-skeleton');
+      // Render into a detached canvas and only attach it once painted —
+      // rendering directly into a canvas that's already part of the live
+      // document can corrupt glyph positioning for some embedded fonts.
+      // Never reorder this to insert-then-render. See the contract note
+      // on PDFEngine.renderPageToCanvas in app/js/pdf-engine.js.
       const canvas = document.createElement('canvas');
-      wrap.insertBefore(canvas, wrap.firstChild.nextSibling); // after the page-label span
-      // Rendering (incl. the devicePixelRatio scaling that keeps dense
-      // connected scripts like Arabic sharp instead of smeared) is
-      // centralized in PDFEngine.renderPageToCanvas so viewer.js,
-      // thumbnails.js, and any future PDF surface always scale pages the
-      // same way.
       await PDFEngine.renderPageToCanvas(page, canvas, viewport).promise;
+      wrap.classList.remove('dv-pdf-page-skeleton');
+      wrap.insertBefore(canvas, wrap.firstChild.nextSibling); // after the page-label span
       await ensureTextLayer(entry);
     }
 
@@ -739,14 +739,19 @@ const Viewer = (function () {
     for (let i = 1; i <= doc.numPages; i++) {
       const t = document.createElement('div');
       t.className = 'dv-thumb';
-      t.innerHTML = `<canvas></canvas><span class="dv-thumb-num">${i}</span>`;
+      t.innerHTML = `<span class="dv-thumb-num">${i}</span>`;
       t.addEventListener('click', () => goToPdfPage(i));
       dom.sidebar.appendChild(t);
-      doc.getPage(i).then(page => {
+      // Render into a detached canvas and only attach it once painted —
+      // same contract as renderOne() above and PDFEngine.renderPageToCanvas
+      // (see its header comment in app/js/pdf-engine.js). Building the
+      // <canvas> inside t.innerHTML above and rendering into it in place
+      // would attach it to the live DOM before the render starts.
+      doc.getPage(i).then(async (page) => {
         const vp = page.getViewport({ scale: 0.2 });
-        const c = t.querySelector('canvas');
-        c.width = vp.width; c.height = vp.height;
-        page.render({ canvasContext: c.getContext('2d'), viewport: vp });
+        const c = document.createElement('canvas');
+        await PDFEngine.renderPageToCanvas(page, c, vp).promise;
+        t.appendChild(c);
       });
     }
   }

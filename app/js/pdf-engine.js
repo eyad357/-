@@ -134,13 +134,21 @@ const PDFEngine = (function () {
   function classifyError(err) {
     if (err && err.name === 'PDFEngineError') return err; // already classified
     let code = 'UNKNOWN';
+    // Guard every check: pdf.js has renamed/removed exception classes between
+    // major versions before (e.g. MissingPDFException and
+    // UnexpectedResponseException both existed in 4.x and are gone in 6.x).
+    // `instanceof undefined` throws, so an unguarded check here would mask
+    // the real error behind a *different* crash in this classifier. Checking
+    // typeof first makes this resilient to future pdf.js exception renames
+    // without needing to touch every call site again.
+    const isInstance = (Ctor) => typeof Ctor === 'function' && err instanceof Ctor;
     if (typeof pdfjsLib !== 'undefined') {
-      if (err instanceof pdfjsLib.PasswordException) code = 'PASSWORD_REQUIRED';
-      else if (err instanceof pdfjsLib.InvalidPDFException) code = 'INVALID_PDF';
-      else if (err instanceof pdfjsLib.MissingPDFException) code = 'NETWORK';
-      else if (err instanceof pdfjsLib.UnexpectedResponseException) code = 'NETWORK';
-      else if (err instanceof pdfjsLib.RenderingCancelledException) code = 'CANCELLED';
-      else if (err instanceof pdfjsLib.AbortException) code = 'CANCELLED';
+      if (isInstance(pdfjsLib.PasswordException)) code = 'PASSWORD_REQUIRED';
+      else if (isInstance(pdfjsLib.InvalidPDFException)) code = 'INVALID_PDF';
+      else if (isInstance(pdfjsLib.MissingPDFException)) code = 'NETWORK';
+      else if (isInstance(pdfjsLib.UnexpectedResponseException)) code = 'NETWORK';
+      else if (isInstance(pdfjsLib.RenderingCancelledException)) code = 'CANCELLED';
+      else if (isInstance(pdfjsLib.AbortException)) code = 'CANCELLED';
     }
     // console.error, not console.log: technical detail is for developers/
     // support logs only, business message above is what the user sees.
@@ -211,7 +219,36 @@ const PDFEngine = (function () {
   // low-res canvas. Returns the RenderTask so callers can .cancel() it
   // (e.g. when a page scrolls out of view before rendering finishes, or
   // the viewer is closed mid-render).
+  //
+  // CONTRACT — the canvas must NOT be attached to the document when this
+  // is called. Rendering into a canvas that is already part of the live,
+  // composited page (vs. an off-DOM canvas) makes Chromium take a
+  // different native-font rasterization path — confirmed by direct A/B
+  // testing (identical render call, only DOM-attachment differed). For
+  // PDFs with certain broken/unusual embedded TrueType hinting tables
+  // (seen from real PowerPoint-to-PDF exports), that path corrupts glyph
+  // advance widths, producing scattered extra gaps mid-word — while the
+  // exact same render into a detached canvas is always correct. This is
+  // NOT a pdf.js version issue and NOT fixed by disableFontFace (that
+  // trades this bug for a worse one: forcing pdf.js's own glyph-path
+  // renderer skips the browser's text shaping entirely, which breaks
+  // Arabic ligature joining on PDFs that rely on the renderer to shape
+  // text rather than shipping pre-shaped glyph runs — verified against a
+  // real school Arabic PDF that regressed exactly that way). Rendering
+  // off-DOM and attaching only the finished bitmap avoids the bug
+  // entirely, for every font, with no per-file/per-font special-casing.
+  // See PDF-ARCHITECTURE-REVIEW.md for the full A/B evidence.
+  //
+  // Callers: create the canvas, call this, await task.promise, THEN
+  // insert the canvas into the document. Never insert first.
   function renderPageToCanvas(page, canvas, viewport, opts) {
+    if (canvas.isConnected) {
+      console.warn(
+        '[PDFEngine] renderPageToCanvas called on a canvas already attached to the document. ' +
+        'This can corrupt glyph positioning for some embedded fonts — render off-DOM and attach ' +
+        'the canvas only after task.promise resolves. See the contract note above this function.'
+      );
+    }
     opts = opts || {};
     const outputScale = opts.outputScale || window.devicePixelRatio || 1;
     canvas.width = Math.floor(viewport.width * outputScale);
