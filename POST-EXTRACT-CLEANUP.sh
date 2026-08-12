@@ -1,32 +1,38 @@
 #!/usr/bin/env bash
 # Run this ONCE after extracting the archive over your repo, before
-# `git add .`. A tar archive can only add/overwrite files — it can't
-# delete the old pdf.js 4.10.38 files, which have different filenames
-# (.js) than the new 6.2.108 ones (.mjs), so both would otherwise sit
-# side by side in your repo.
+# `git add .`.
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# A tar archive can only add/overwrite files, not delete them. If your
+# repo predates the Electron 43 / pdf.js 6.2.108 migration, the old
+# pdf.js 4.10.38 files (different filenames — .js, not .mjs) would
+# otherwise sit alongside the new ones.
 old_files=(
   "app/js/vendor/pdfjs/pdf.min.js"
   "app/js/vendor/pdfjs/pdf.worker.min.js"
 )
-
 for f in "${old_files[@]}"; do
-  if [ -f "$f" ]; then
-    rm -v "$f"
-  fi
+  if [ -f "$f" ]; then rm -v "$f"; fi
 done
 
 echo ""
-echo "Done. Old pdf.js 4.10.38 files removed (if present)."
-echo "New files in place: app/js/vendor/pdfjs/pdf.min.mjs, pdf.worker.min.mjs (6.2.108)"
+echo "Done."
+echo ""
+echo "This archive assumes your repo already has the Electron 43.3.0 /"
+echo "pdf.js 6.2.108 migration and the PDF render-order fix from the prior"
+echo "two delivery passes — it ships the full current state of every file"
+echo "it touches (including ones those passes also modified), so extracting"
+echo "it is safe either way: over an already-migrated repo, or directly"
+echo "over the original pristine repo (in which case you get all three"
+echo "passes' worth of changes in one shot)."
 echo ""
 echo "Next steps:"
-echo "  rm -rf node_modules                     # old node_modules pinned electron@30"
-echo "  npm ci                                   # installs exactly what's pinned in the shipped package-lock.json (electron 43.3.0 + electron-builder 26.x)"
+echo "  rm -rf node_modules"
+echo "  npm ci"
 echo "  npm run verify:server"
 echo "  npm run verify:viewer"
 echo "  npm run verify:part2"
-echo "  npm run verify:pdf-render-order          # new — guards the DOM-attach-before-render bug fixed in this pass"
-echo "  npm run dev                              # sanity-check locally before packaging"
+echo "  npm run verify:pdf-render-order"
+echo "  npm run verify:file-support-policy   # new — covers this pass"
+echo "  npm run dev"

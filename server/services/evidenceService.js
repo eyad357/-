@@ -11,20 +11,14 @@ const TREE = require('../data/evidence-tree.json');
 const CODES = Object.keys(MANIFEST);
 const CODE_IN_FOLDER_NAME = /\((\d+-\d+-\d+-\d+)\)/; // e.g. "مؤشر (1-2-1-1) تعزز المدرسة ..."
 
-const CATEGORY_BY_EXT = {
-  pdf: 'pdf',
-  doc: 'word', docx: 'word', rtf: 'word', odt: 'word',
-  xls: 'excel', xlsx: 'excel', csv: 'excel', ods: 'excel',
-  ppt: 'powerpoint', pptx: 'powerpoint', odp: 'powerpoint',
-  zip: 'archive', rar: 'archive', '7z': 'archive', tar: 'archive', gz: 'archive',
-  txt: 'text', md: 'text', log: 'text',
-  jpg: 'image', jpeg: 'image', png: 'image', webp: 'image', gif: 'image', bmp: 'image', svg: 'image',
-  mp4: 'video', mov: 'video', avi: 'video', mkv: 'video', webm: 'video',
-  mp3: 'audio', wav: 'audio', m4a: 'audio', ogg: 'audio',
-};
+// Single source of truth for "what kind of file is this" — see
+// FILE-SUPPORT-ARCHITECTURE-REPORT.md. This used to be a locally
+// hand-maintained CATEGORY_BY_EXT map that had drifted out of sync with
+// the frontend's own copy; both now read the same table.
+const FileSupportPolicy = require('../../app/js/file-support-policy.js');
 
 function categoryForExt(ext) {
-  return CATEGORY_BY_EXT[ext.replace('.', '').toLowerCase()] || 'file';
+  return FileSupportPolicy.getCategory(ext);
 }
 
 function formatSize(bytes) {

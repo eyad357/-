@@ -15,31 +15,13 @@ const Viewer = (function () {
 
   const VAPI = ''; // same-origin, mirrors API in index.html
 
-  // ── category map (mirrors server/services/evidenceService categoryForExt, extended) ──
-  const EXT_MAP = {
-    pdf: 'pdf',
-    jpg: 'image', jpeg: 'image', png: 'image', webp: 'image', gif: 'image', bmp: 'image', svg: 'image',
-    mp4: 'video', webm: 'video', mov: 'video', mkv: 'video', avi: 'video', m4v: 'video',
-    mp3: 'audio', wav: 'audio', m4a: 'audio', ogg: 'audio', aac: 'audio', flac: 'audio',
-    docx: 'word', doc: 'word-legacy', rtf: 'word-legacy', odt: 'word-legacy',
-    xlsx: 'excel', xls: 'excel', xlsm: 'excel', ods: 'excel-legacy',
-    csv: 'csv',
-    pptx: 'ppt', ppt: 'ppt-legacy', odp: 'ppt-legacy',
-    txt: 'text', md: 'text', log: 'text', json: 'text', xml: 'text',
-  };
-
-  const TYPE_ICON = {
-    pdf: '📕', image: '🖼️', video: '🎬', audio: '🎧', word: '📘', 'word-legacy': '📘',
-    excel: '📗', 'excel-legacy': '📗', csv: '📊', ppt: '📙', 'ppt-legacy': '📙', text: '📄', other: '📎',
-  };
-
-  const TYPE_LABEL = {
-    pdf: 'مستند PDF', image: 'صورة', video: 'فيديو', audio: 'ملف صوتي',
-    word: 'مستند Word', 'word-legacy': 'مستند Word (تنسيق قديم)',
-    excel: 'جدول بيانات Excel', 'excel-legacy': 'جدول بيانات (تنسيق قديم)',
-    csv: 'ملف CSV', ppt: 'عرض PowerPoint', 'ppt-legacy': 'عرض PowerPoint (تنسيق قديم)',
-    text: 'ملف نصي', other: 'ملف',
-  };
+  // File-type classification (category, icon, label, preview capability)
+  // all comes from FileSupportPolicy (app/js/file-support-policy.js) — the
+  // single source of truth shared with the backend, the uploader, and
+  // every other screen that shows a file icon/label. Do not reintroduce a
+  // local extension map here.
+  function extOf(name) { return FileSupportPolicy.getExtension(name); }
+  function categoryOf(name) { return FileSupportPolicy.getCategory(name); }
 
   // Resolves an OOXML relationship Target (e.g. "../media/image1.png") against
   // the directory of the file that referenced it (e.g. "ppt/slides"), the way
@@ -55,12 +37,6 @@ const Viewer = (function () {
     }
     return baseParts.join('/');
   }
-
-  function extOf(name) {
-    const parts = String(name).split('.');
-    return parts.length > 1 ? parts.pop().toLowerCase() : '';
-  }
-  function categoryOf(name) { return EXT_MAP[extOf(name)] || 'other'; }
 
   function fmtBytes(n) {
     if (n == null) return '—';
@@ -219,8 +195,8 @@ const Viewer = (function () {
     }
 
     dom.filename.textContent = file.name;
-    dom.subtitle.textContent = `${TYPE_LABEL[state.category] || 'ملف'} · ${fmtBytes(file.size ?? file.bytes)}`;
-    dom.icon.textContent = TYPE_ICON[state.category] || '📎';
+    dom.subtitle.textContent = `${FileSupportPolicy.labelFor(file.name)} · ${fmtBytes(file.size ?? file.bytes)}`;
+    dom.icon.textContent = FileSupportPolicy.iconFor(file.name);
     dom.dlBtn.href = state.url;
     dom.dlBtn.download = file.name;
     dom.toolbar.innerHTML = '';
@@ -236,14 +212,28 @@ const Viewer = (function () {
 
     dom.overlay.classList.add('open');
 
-    const renderers = {
-      image: renderImage, pdf: renderPdf, video: renderVideo, audio: renderAudio,
-      word: renderWordDocx, 'word-legacy': renderUnsupportedOffice,
-      excel: renderExcel, 'excel-legacy': renderUnsupportedOffice, csv: renderExcel,
-      ppt: renderPptx, 'ppt-legacy': renderUnsupportedOffice,
-      text: renderText, other: renderFallback,
+    // Which render function handles a file is driven by its policy entry's
+    // preview.engine (FileSupportPolicy), not a hand-maintained per-category
+    // table — adding/changing a format's preview capability only requires
+    // editing app/js/file-support-policy.js.
+    const renderersByEngine = {
+      'pdfjs': renderPdf,
+      'native-image': renderImage,
+      'native-media-video': renderVideo,
+      'native-media-audio': renderAudio,
+      'mammoth': renderWordDocx,
+      'sheetjs': renderExcel,
+      'pptx-text-extract': renderPptx,
+      'plaintext': renderText,
     };
-    (renderers[state.category] || renderFallback)();
+    const policy = FileSupportPolicy.getPolicy(state.file.name);
+    if (policy && policy.preview.supported && renderersByEngine[policy.preview.engine]) {
+      renderersByEngine[policy.preview.engine]();
+    } else if (policy && policy.fallback === 'external-open') {
+      renderUnsupportedOffice();
+    } else {
+      renderFallback();
+    }
   }
 
   function close() {
@@ -278,7 +268,7 @@ const Viewer = (function () {
     dom.infoPanel.innerHTML = `
       <h4>معلومات الملف</h4>
       <div class="dv-info-row"><span class="k">الاسم</span><span class="v">${esc(f.name)}</span></div>
-      <div class="dv-info-row"><span class="k">النوع</span><span class="v">${esc(TYPE_LABEL[state.category] || '—')}</span></div>
+      <div class="dv-info-row"><span class="k">النوع</span><span class="v">${esc(FileSupportPolicy.labelFor(f.name))}</span></div>
       <div class="dv-info-row"><span class="k">الحجم</span><span class="v">${fmtBytes(f.size ?? f.bytes)}</span></div>
       <div class="dv-info-row"><span class="k">آخر تعديل</span><span class="v">${fmtDate(f.modified || f.mtime)}</span></div>
       <div class="dv-info-row"><span class="k">رمز المؤشر</span><span class="v">${esc(state.code)}</span></div>

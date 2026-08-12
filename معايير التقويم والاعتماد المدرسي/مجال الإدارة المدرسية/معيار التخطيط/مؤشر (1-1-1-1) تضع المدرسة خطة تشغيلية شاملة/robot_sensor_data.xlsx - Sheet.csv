@@ -1,0 +1,201 @@
+Ultrasonic_cm,IR_Detected,Left_Encoder,Right_Encoder,Battery_%,State
+25,1,237,234,97,Obstacle
+105,0,295,293,58,Empty Path
+31,1,303,305,84,Human Detected
+7,0,0,0,99,Charging Station
+18,1,232,229,55,Obstacle
+97,0,294,295,88,Empty Path
+26,1,295,293,95,Human Detected
+18,0,0,0,93,Charging Station
+19,1,267,266,50,Obstacle
+90,0,324,324,71,Empty Path
+42,1,269,267,98,Human Detected
+15,0,0,0,91,Charging Station
+7,1,254,251,72,Obstacle
+114,0,318,317,52,Empty Path
+54,1,294,291,74,Human Detected
+400,0,0,0,98,Charging Station
+14,1,270,271,73,Obstacle
+143,0,292,294,54,Empty Path
+27,1,302,300,99,Human Detected
+14,0,0,0,91,Charging Station
+12,1,236,236,67,Obstacle
+128,0,320,323,73,Empty Path
+35,1,283,282,63,Human Detected
+13,0,0,0,100,Charging Station
+25,1,234,235,90,Obstacle
+91,0,314,316,65,Empty Path
+35,1,289,289,67,Human Detected
+12,0,0,0,100,Charging Station
+15,1,233,231,52,Obstacle
+110,0,305,304,54,Empty Path
+38,1,296,298,70,Human Detected
+11,0,0,0,100,Charging Station
+20,1,255,257,79,Obstacle
+88,0,296,294,65,Empty Path
+60,1,294,293,97,Human Detected
+18,0,,0,99,Charging Station
+17,1,253,251,58,Obstacle
+135,0,311,308,98,Empty Path
+28,1,267,265,90,Human Detected
+10,0,0,0,100,Charging Station
+18,1,268,265,74,Obstacle
+118,0,318,318,83,Empty Path
+41,1,295,298,50,Human Detected
+8,0,0,0,100,Charging Station
+22,1,247,250,91,Obstacle
+113,0,287,286,77,Empty Path
+35,1,289,286,96,Human Detected
+13,0,0,0,98,Charging Station
+10,1,262,259,90,Obstacle
+108,0,320,321,88,Empty Path
+37,1,269,268,98,Human Detected
+10,0,0,0,98,Charging Station
+21,1,230,231,70,Obstacle
+132,0,281,278,73,Empty Path
+44,1,275,272,65,Human Detected
+7,0,0,0,91,Charging Station
+20,1,234,237,,Obstacle
+86,0,288,290,80,Empty Path
+60,1,270,269,83,Human Detected
+18,0,0,0,93,Charging Station
+22,1,242,244,69,Obstacle
+121,0,322,324,73,Empty Path
+53,1,293,293,57,Human Detected
+12,0,0,0,93,Charging Station
+7,1,251,248,87,Obstacle
+140,0,294,295,64,Empty Path
+25,1,264,266,90,Human Detected
+6,0,0,0,93,Charging Station
+7,1,232,235,71,Obstacle
+79,0,312,310,67,Empty Path
+56,1,273,274,58,Human Detected
+20,0,0,0,93,Charging Station
+20,1,256,254,56,Obstacle
+82,0,322,322,72,Empty Path
+52,1,286,286,96,Human Detected
+6,0,0,0,100,Charging Station
+25,1,236,233,75,Obstacle
+400,0,286,284,62,Empty Path
+37,1,294,294,58,Human Detected
+18,0,0,0,92,Charging Station
+13,1,259,257,54,Obstacle
+126,0,315,312,53,Empty Path
+59,1,260,257,98,Human Detected
+12,0,0,0,92,Charging Station
+18,1,261,261,63,Obstacle
+121,0,283,281,74,Empty Path
+25,1,284,283,100,Human Detected
+19,0,0,0,94,Charging Station
+18,1,265,267,95,Obstacle
+132,0,289,287,68,Empty Path
+38,1,263,264,97,Human Detected
+6,0,0,0,95,Charging Station
+6,1,233,234,80,Obstacle
+134,0,313,311,53,Empty Path
+57,1,265,268,61,Human Detected
+7,0,0,0,99,Charging Station
+7,1,245,245,57,Obstacle
+142,0,295,296,88,Empty Path
+27,1,,296,76,Human Detected
+15,0,0,0,94,Charging Station
+11,1,250,248,66,Obstacle
+120,0,288,290,91,Empty Path
+44,1,289,288,98,Human Detected
+7,0,0,0,90,Charging Station
+19,1,269,270,56,Obstacle
+79,0,314,312,82,Empty Path
+41,1,268,267,54,Human Detected
+12,0,0,0,95,Charging Station
+14,1,240,240,84,Obstacle
+108,0,319,322,91,Empty Path
+58,1,260,262,85,Human Detected
+14,0,0,0,100,Charging Station
+8,1,238,237,57,Obstacle
+83,0,327,328,59,Empty Path
+42,1,278,279,63,Human Detected
+15,0,0,0,93,Charging Station
+25,1,246,247,81,Obstacle
+102,0,283,280,90,Empty Path
+52,1,277,274,50,Human Detected
+15,0,0,0,92,Charging Station
+25,1,246,244,97,Obstacle
+126,0,315,317,77,Empty Path
+60,1,260,257,54,Human Detected
+400,0,0,0,98,Charging Station
+6,1,253,254,85,Obstacle
+88,0,307,305,52,Empty Path
+44,1,283,286,52,Human Detected
+16,0,0,0,93,Charging Station
+12,1,236,235,99,Obstacle
+141,0,306,307,97,Empty Path
+34,1,275,278,60,Human Detected
+10,0,0,0,96,Charging Station
+5,1,241,243,71,Obstacle
+122,0,322,325,97,Empty Path
+40,1,277,275,100,Human Detected
+8,0,0,0,96,Charging Station
+6,1,260,258,62,Obstacle
+128,0,302,301,100,Empty Path
+39,1,274,271,92,Human Detected
+11,0,0,0,96,Charging Station
+15,1,247,250,54,Obstacle
+105,0,302,304,82,Empty Path
+50,1,303,306,84,Human Detected
+15,0,0,0,90,Charging Station
+8,1,246,244,87,Obstacle
+103,0,282,279,88,Empty Path
+52,1,282,284,100,Human Detected
+15,0,0,0,96,Charging Station
+24,1,262,259,74,Obstacle
+143,0,292,291,52,Empty Path
+52,1,260,261,84,Human Detected
+11,0,0,0,95,Charging Station
+18,1,234,236,71,Obstacle
+149,0,300,302,57,Empty Path
+44,1,292,291,92,Human Detected
+18,0,0,0,95,Charging Station
+17,1,248,249,58,Obstacle
+94,0,306,308,74,Empty Path
+36,1,299,300,69,Human Detected
+17,0,0,0,98,Charging Station
+5,1,249,248,63,Obstacle
+125,0,330,331,88,Empty Path
+45,1,289,289,78,Human Detected
+11,0,0,0,98,Charging Station
+20,1,240,242,55,Obstacle
+106,0,312,314,90,Empty Path
+46,1,265,268,98,Human Detected
+12,0,0,0,100,Charging Station
+14,1,244,247,62,Obstacle
+88,0,281,278,65,Empty Path
+55,1,299,302,99,Human Detected
+7,0,0,0,97,Charging Station
+18,1,270,271,62,Obstacle
+119,0,311,311,65,Empty Path
+34,1,301,303,50,Human Detected
+8,0,0,0,96,Charging Station
+12,1,241,244,94,Obstacle
+136,0,309,306,85,Empty Path
+40,1,267,267,58,Human Detected
+19,0,0,0,100,Charging Station
+21,1,265,266,70,Obstacle
+126,0,319,322,96,Empty Path
+57,1,287,290,85,Human Detected
+19,0,0,0,92,Charging Station
+20,1,258,257,98,Obstacle
+101,0,320,319,99,Empty Path
+58,1,291,293,65,Human Detected
+13,0,0,0,97,Charging Station
+7,1,248,246,67,Obstacle
+112,0,300,301,55,Empty Path
+33,1,269,267,74,Human Detected
+9,0,0,0,93,Charging Station
+7,1,256,256,71,Obstacle
+139,0,309,309,53,Empty Path
+38,1,286,286,99,Human Detected
+5,0,0,0,99,Charging Station
+17,1,260,257,72,Obstacle
+108,0,328,328,76,Empty Path
+59,1,307,309,84,Human Detected
+12,0,0,0,97,Charging Station

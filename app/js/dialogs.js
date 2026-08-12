@@ -122,10 +122,8 @@ const Dialogs = (function () {
   // ══════════════════════════════════════════════════════════
   // PROPERTIES
   // ══════════════════════════════════════════════════════════
-  const TYPE_LABEL = {
-    pdf: 'مستند PDF', word: 'مستند Word', excel: 'جدول بيانات Excel', powerpoint: 'عرض PowerPoint',
-    image: 'صورة', video: 'فيديو', audio: 'ملف صوتي', text: 'ملف نصي', archive: 'أرشيف مضغوط', file: 'ملف',
-  };
+  // File-type label for the properties panel — from FileSupportPolicy
+  // (single source of truth), not a local copy.
 
   function row(label, value) {
     return `<div class="dlg-prop-row"><span class="dlg-prop-k">${esc(label)}</span><span class="dlg-prop-v" id="dlg-prop-${label}">${value}</span></div>`;
@@ -142,7 +140,7 @@ const Dialogs = (function () {
           <div class="dlg-prop-grid">
             ${row('الاسم', esc(file.name))}
             ${row('الامتداد', esc(file.ext || '—'))}
-            ${row('النوع', esc(TYPE_LABEL[file.category] || file.category || '—'))}
+            ${row('النوع', esc(FileSupportPolicy.labelFor(file.name)))}
             ${row('الحجم', fmtBytes(file.bytes))}
             ${row('تاريخ الإنشاء', fmtDate(file.created))}
             ${row('آخر تعديل', fmtDate(file.modified))}

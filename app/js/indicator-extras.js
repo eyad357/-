@@ -14,13 +14,8 @@ const IndicatorExtras = (function () {
 
   const IAPI = ''; // same-origin
 
-  const CATEGORY_LABEL = {
-    pdf: 'PDF', image: 'صور', video: 'فيديو', audio: 'صوت', word: 'Word',
-    excel: 'Excel', ppt: 'PowerPoint', text: 'نصوص', other: 'أخرى',
-  };
-  const CATEGORY_ICON = {
-    pdf: '📕', image: '🖼️', video: '🎬', audio: '🎧', word: '📘', excel: '📗', ppt: '📙', text: '📄', other: '📎',
-  };
+  // Category label/icon for the per-indicator stats chips — from
+  // FileSupportPolicy (single source of truth), not a local copy.
 
   function fmtBytes(n) {
     if (n == null) return '—';
@@ -58,7 +53,7 @@ const IndicatorExtras = (function () {
     files.forEach(f => { byCategory[f.category] = (byCategory[f.category] || 0) + 1; });
     const distribution = Object.entries(byCategory)
       .sort((a, b) => b[1] - a[1])
-      .map(([cat, count]) => `<span class="ie-chip" title="${CATEGORY_LABEL[cat] || cat}">${CATEGORY_ICON[cat] || '📎'} ${count}</span>`)
+      .map(([cat, count]) => `<span class="ie-chip" title="${FileSupportPolicy.getCategoryMeta(cat).labelAr}">${FileSupportPolicy.getCategoryMeta(cat).icon} ${count}</span>`)
       .join('');
 
     el.innerHTML = `
