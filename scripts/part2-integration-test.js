@@ -139,17 +139,20 @@ Module._load = function (request, parent, isMain) { if (request === 'electron') 
 
   // Simulate an XHR-style raw upload exactly like Uploader.enqueue sends, to
   // make sure the existing /api/upload endpoint still behaves identically.
+  // Uses .txt (an allowed type) since this test is about the *transport*
+  // shape (headers/body/listing), not file-type validation — that has its
+  // own dedicated test in scripts/file-support-policy-test.js.
   await check('upload via the same request shape the new Uploader module sends', async () => {
     const bytes = Buffer.from('progress-upload-test-content');
     const r = await fetch(`${base}/api/upload/${code}`, {
       method: 'POST',
-      headers: { 'x-filename': encodeURIComponent('uploader-shape-test.bin'), 'Content-Type': 'application/octet-stream' },
+      headers: { 'x-filename': encodeURIComponent('uploader-shape-test.txt'), 'Content-Type': 'application/octet-stream' },
       body: bytes,
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     await new Promise(res => setTimeout(res, 300));
     const list = await fetch(`${base}/api/files/${code}`).then(x => x.json());
-    if (!list.files.some(f => f.name === 'uploader-shape-test.bin')) throw new Error('uploaded file not listed');
+    if (!list.files.some(f => f.name === 'uploader-shape-test.txt')) throw new Error('uploaded file not listed');
   });
 
   console.log('\n=== PART 2 INTEGRATION TEST RESULTS ===');

@@ -685,6 +685,13 @@ body{font-family:'Tajawal',sans-serif;background:var(--surf);color:var(--text);d
      place. viewer.js / thumbnails.js / dialogs.js must go through
      PDFEngine instead of touching pdfjsLib directly. Loaded after the
      pdfjsLib module bridge above and before anything that uses it. -->
+<!-- Single source of truth for which file types this app supports, their
+     size limits, and what preview capability (if any) each has. Every
+     other script that needs to classify a file by extension — viewer.js,
+     uploader/drag-drop validation below, thumbnails.js, dialogs.js,
+     file-grid-controls.js, indicator-extras.js — reads from this instead
+     of keeping its own copy. See FILE-SUPPORT-ARCHITECTURE-REPORT.md. -->
+<script src="js/file-support-policy.js"></script>
 <script src="js/pdf-engine.js"></script>
 <script src="js/viewer.js"></script>
 <!-- Phase 1.5 Part 2: upload tray (additive) -->
@@ -821,18 +828,14 @@ let auditPage = 1;
 // ════════════════════════════════════════════════════════════
 // FILE UTILITIES
 // ════════════════════════════════════════════════════════════
-const FILE_ICONS = {
-  pdf:'📄', doc:'📝', docx:'📝', xls:'📊', xlsx:'📊',
-  ppt:'📑', pptx:'📑', zip:'🗜️', rar:'🗜️', txt:'📃',
-  jpg:'🖼️', jpeg:'🖼️', png:'🖼️', webp:'🖼️', gif:'🖼️',
-};
-const BG_CLASS = {
-  pdf:'pdf-bg', word:'word-bg', excel:'excel-bg',
-  powerpoint:'ppt-bg', archive:'zip-bg', text:'text-bg',
-  image:'', file:'file-bg',
-};
-function fileIcon(ext) { return FILE_ICONS[ext.replace('.','').toLowerCase()] || '📎'; }
-function isImage(ext) { return ['jpg','jpeg','png','webp','gif','bmp'].includes(ext.replace('.','').toLowerCase()); }
+// ════════════════════════════════════════════════════════════
+// FILE UTILITIES — thin wrappers over FileSupportPolicy (the single
+// source of truth; see app/js/file-support-policy.js). Do not add a
+// local extension→icon/category table here again.
+// ════════════════════════════════════════════════════════════
+function fileIcon(ext) { return FileSupportPolicy.iconFor(ext); }
+function isImage(ext) { return FileSupportPolicy.isImageExt(ext); }
+const BG_CLASS = new Proxy({}, { get: (_, category) => FileSupportPolicy.getCategoryMeta(category).bgClass });
 
 // ════════════════════════════════════════════════════════════
 // INIT & BOOT SEQUENCE
@@ -1320,11 +1323,33 @@ function buildFileCard(code, file) {
   return card;
 }
 
+// Client-side pre-check before even queueing an upload — pure UX (instant
+// feedback instead of waiting on a round trip for something we already
+// know is going to fail). The server performs the real, authoritative
+// check (extension + size + magic bytes) via the same FileSupportPolicy
+// table — never trust this client-side pass alone.
+function splitByPolicy(files) {
+  const allowed = [], rejected = [];
+  for (const f of files) {
+    const verdict = FileSupportPolicy.classifyUpload({ filename: f.name, size: f.size });
+    (verdict.ok ? allowed : rejected).push({ file: f, verdict });
+  }
+  return { allowed, rejected };
+}
+function showRejectedFilesToast(rejected) {
+  if (!rejected.length) return;
+  const names = rejected.map(r => `${r.file.name} — ${r.verdict.friendlyTitle}`).join('، ');
+  showToast(`⚠️ لم يُرفع ${rejected.length} ملف: ${names}`, 'error');
+}
+
 async function uploadFiles(code, input) {
   const files = Array.from(input.files);
   if (!files.length) return;
-  const { ok, total } = await Uploader.enqueue(code, files, 'upload');
+  const { allowed, rejected } = splitByPolicy(files);
+  showRejectedFilesToast(rejected);
   input.value = '';
+  if (!allowed.length) return;
+  const { ok, total } = await Uploader.enqueue(code, allowed.map(a => a.file), 'upload');
   showToast(`✅ تم رفع ${ok}/${total} ملف`, ok === total ? 'success' : 'error');
   loadFiles(code); loadStats();
 }
@@ -1350,7 +1375,10 @@ async function handleDrop(e, code) {
   if (zone) zone.classList.remove('dragover');
   const files = Array.from(e.dataTransfer.files);
   if (!files.length) return;
-  const { ok, total } = await Uploader.enqueue(code, files, 'upload-raw');
+  const { allowed, rejected } = splitByPolicy(files);
+  showRejectedFilesToast(rejected);
+  if (!allowed.length) return;
+  const { ok, total } = await Uploader.enqueue(code, allowed.map(a => a.file), 'upload-raw');
   showToast(`✅ تم رفع ${ok}/${total} ملف`, ok === total ? 'success' : 'error');
   loadFiles(code); loadStats();
 }

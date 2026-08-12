@@ -11,32 +11,18 @@
 const FileGridControls = (function () {
   'use strict';
 
-  // Finer-grained filter buckets than the server's own `category` field
-  // (which lumps csv into "excel" and zip/rar/etc into "archive" — that
-  // field drives existing icon/color styling elsewhere and is left alone).
-  // This mapping exists only for the filter chips, so it's fully additive.
-  const FILTER_EXT_MAP = {
-    pdf: 'pdf',
-    doc: 'word', docx: 'word', rtf: 'word', odt: 'word',
-    xls: 'excel', xlsx: 'excel', xlsm: 'excel', ods: 'excel',
-    csv: 'csv',
-    ppt: 'ppt', pptx: 'ppt', odp: 'ppt',
-    jpg: 'image', jpeg: 'image', png: 'image', webp: 'image', gif: 'image', bmp: 'image', svg: 'image',
-    mp4: 'video', mov: 'video', avi: 'video', mkv: 'video', webm: 'video', m4v: 'video',
-    mp3: 'audio', wav: 'audio', m4a: 'audio', ogg: 'audio', aac: 'audio', flac: 'audio',
-    txt: 'text', md: 'text', log: 'text', json: 'text', xml: 'text',
-    zip: 'zip', rar: 'zip', '7z': 'zip', tar: 'zip', gz: 'zip',
-  };
-  const FILTER_LABELS = {
-    pdf: '📕 PDF', word: '📘 Word', excel: '📗 Excel', ppt: '📙 PowerPoint',
-    image: '🖼️ صور', video: '🎬 فيديو', audio: '🎧 صوت', text: '📄 نصوص',
-    csv: '📊 CSV', zip: '🗜️ ZIP', other: '📎 أخرى',
-  };
-  const FILTER_ORDER = ['pdf', 'word', 'excel', 'ppt', 'image', 'video', 'audio', 'text', 'csv', 'zip', 'other'];
+  // Filter-chip buckets — same categories FileSupportPolicy assigns
+  // everywhere else in the app (the server's file.category field, the
+  // viewer, thumbnails, dialogs). No local extension→bucket table here.
+  const FILTER_ORDER = ['pdf', 'word', 'excel', 'csv', 'powerpoint', 'image', 'video', 'audio', 'text', 'archive', 'other'];
+  const FILTER_LABELS = FILTER_ORDER.reduce((acc, cat) => {
+    const meta = FileSupportPolicy.getCategoryMeta(cat);
+    acc[cat] = `${meta.icon} ${meta.labelAr}`;
+    return acc;
+  }, {});
 
   function filterBucket(name) {
-    const ext = String(name).split('.').pop().toLowerCase();
-    return FILTER_EXT_MAP[ext] || 'other';
+    return FileSupportPolicy.getCategory(name);
   }
 
   // code -> { search, sortField, sortDir, filters:Set }

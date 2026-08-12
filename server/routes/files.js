@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const router = express.Router();
 const evidenceService = require('../services/evidenceService');
+const FileSupportPolicy = require('../../app/js/file-support-policy.js');
 
 const rawBody = express.raw({ type: '*/*', limit: '200mb' });
 
@@ -40,18 +41,44 @@ router.delete('/file/:code/:name', async (req, res) => {
 
 // POST /api/upload/:code and /api/upload-raw/:code — both behave the same:
 // raw request body = file bytes, x-filename header = original name.
+//
+// Validation is authoritative here (never trust the client) and goes
+// through FileSupportPolicy — the single source of truth for which
+// extensions are allowed, their size limits, and (where practical) their
+// expected magic bytes. See FILE-SUPPORT-ARCHITECTURE-REPORT.md.
 async function handleUpload(req, res) {
   const { evidenceRoot, store } = req.app.locals;
   const code = req.params.code;
   const dir = evidenceService.folderForCode(evidenceRoot, code);
   if (!dir) return res.status(400).json({ error: 'مؤشر غير معروف' });
 
-  fs.mkdirSync(dir, { recursive: true });
   const filename = path.basename(decodeFilename(req.headers['x-filename'], `file-${Date.now()}`));
+  const body = req.body || Buffer.alloc(0);
+
+  const verdict = FileSupportPolicy.classifyUpload({
+    filename,
+    size: body.length,
+    headerBytes: body.length ? body.subarray(0, 16) : null,
+  });
+  if (!verdict.ok) {
+    store.addAudit({
+      action: 'file_upload_rejected', target: filename, indicator: code,
+      details: `${verdict.reason}: ${verdict.friendlyDetail}`,
+    });
+    return res.status(415).json({
+      error: verdict.friendlyTitle,
+      detail: verdict.friendlyDetail,
+      reason: verdict.reason,
+      extension: verdict.ext,
+      allowedExtensions: FileSupportPolicy.allowedExtensionsList(),
+    });
+  }
+
+  fs.mkdirSync(dir, { recursive: true });
   const destPath = path.join(dir, filename);
 
   try {
-    fs.writeFileSync(destPath, req.body);
+    fs.writeFileSync(destPath, body);
     store.addAudit({ action: 'file_uploaded', target: filename, indicator: code });
     res.json({ success: true, filename });
   } catch (err) {
@@ -61,6 +88,18 @@ async function handleUpload(req, res) {
 
 router.post('/upload/:code', rawBody, handleUpload);
 router.post('/upload-raw/:code', rawBody, handleUpload);
+
+// GET /api/file-policy — the same FileSupportPolicy table the server
+// validates against, exposed so the frontend never has to hardcode its
+// own copy of what's allowed (used for client-side pre-upload checks and
+// the "supported formats" messaging shown to the user).
+router.get('/file-policy', (req, res) => {
+  res.json({
+    extensions: FileSupportPolicy.EXTENSIONS,
+    categories: FileSupportPolicy.CATEGORIES,
+    allowedExtensions: FileSupportPolicy.allowedExtensionsList(),
+  });
+});
 
 // POST /api/open-folder/:code — reveals the indicator folder in the OS file explorer
 router.post('/open-folder/:code', async (req, res) => {

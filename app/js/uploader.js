@@ -134,7 +134,12 @@ const Uploader = (function () {
           setRowState(row, 'done', '✅ تم الرفع');
           resolve(true);
         } else {
-          setRowState(row, 'failed', `❌ فشل (${xhr.status})`);
+          let detail = `فشل (${xhr.status})`;
+          try {
+            const body = JSON.parse(xhr.responseText);
+            if (body && body.error) detail = body.error;
+          } catch { /* non-JSON error body, keep the generic status message */ }
+          setRowState(row, 'failed', `❌ ${detail}`);
           resolve(false);
         }
         scheduleAutoRemove(row.id);
