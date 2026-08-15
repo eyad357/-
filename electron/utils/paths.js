@@ -75,6 +75,14 @@ function getUploadsTmpDir() {
   return path.join(getUserDataDir(), 'tmp');
 }
 
+/** Converted-to-PDF cache for Office documents (PPTX presentation-mode
+ *  rendering, see server/services/officeConversionService.js). Kept
+ *  separate from getUploadsTmpDir() since these are a persistent cache
+ *  (keyed by source file hash), not one-shot scratch space. */
+function getOfficeConversionCacheDir() {
+  return path.join(getUserDataDir(), 'office-conversion-cache');
+}
+
 /** Folder name for the live evidence tree — must match resources/evidence-template exactly. */
 const EVIDENCE_FOLDER_NAME = 'معايير التقويم والاعتماد المدرسي';
 
@@ -116,6 +124,7 @@ module.exports = {
   getLogsDir,
   getBackupsDir,
   getUploadsTmpDir,
+  getOfficeConversionCacheDir,
   getDefaultEvidenceRoot,
   getEvidenceTemplatePath,
   EVIDENCE_FOLDER_NAME,

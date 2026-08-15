@@ -85,8 +85,13 @@ const Thumbnails = (function () {
   }
 
   function attach(card, code, file) {
-    const category = file.category; // server category: 'video' | 'pdf' | ...
-    if (category !== 'video' && category !== 'pdf') return; // images already self-thumbnail; others keep their icon
+    const policy = FileSupportPolicy.getPolicy(file.name);
+    const engine = policy && policy.thumbnail.supported ? policy.thumbnail.engine : null;
+    // 'self' (images) already renders as its own thumbnail via a plain
+    // <img> tag elsewhere — nothing to generate here. Anything else with
+    // no thumbnail engine keeps its category icon.
+    if (engine !== 'pdfjs' && engine !== 'video-frame') return;
+    const category = engine === 'video-frame' ? 'video' : 'pdf';
 
     const iconEl = card.querySelector('.file-card-icon');
     if (!iconEl) return;

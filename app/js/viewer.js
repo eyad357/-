@@ -15,31 +15,13 @@ const Viewer = (function () {
 
   const VAPI = ''; // same-origin, mirrors API in index.html
 
-  // ── category map (mirrors server/services/evidenceService categoryForExt, extended) ──
-  const EXT_MAP = {
-    pdf: 'pdf',
-    jpg: 'image', jpeg: 'image', png: 'image', webp: 'image', gif: 'image', bmp: 'image', svg: 'image',
-    mp4: 'video', webm: 'video', mov: 'video', mkv: 'video', avi: 'video', m4v: 'video',
-    mp3: 'audio', wav: 'audio', m4a: 'audio', ogg: 'audio', aac: 'audio', flac: 'audio',
-    docx: 'word', doc: 'word-legacy', rtf: 'word-legacy', odt: 'word-legacy',
-    xlsx: 'excel', xls: 'excel', xlsm: 'excel', ods: 'excel-legacy',
-    csv: 'csv',
-    pptx: 'ppt', ppt: 'ppt-legacy', odp: 'ppt-legacy',
-    txt: 'text', md: 'text', log: 'text', json: 'text', xml: 'text',
-  };
-
-  const TYPE_ICON = {
-    pdf: '📕', image: '🖼️', video: '🎬', audio: '🎧', word: '📘', 'word-legacy': '📘',
-    excel: '📗', 'excel-legacy': '📗', csv: '📊', ppt: '📙', 'ppt-legacy': '📙', text: '📄', other: '📎',
-  };
-
-  const TYPE_LABEL = {
-    pdf: 'مستند PDF', image: 'صورة', video: 'فيديو', audio: 'ملف صوتي',
-    word: 'مستند Word', 'word-legacy': 'مستند Word (تنسيق قديم)',
-    excel: 'جدول بيانات Excel', 'excel-legacy': 'جدول بيانات (تنسيق قديم)',
-    csv: 'ملف CSV', ppt: 'عرض PowerPoint', 'ppt-legacy': 'عرض PowerPoint (تنسيق قديم)',
-    text: 'ملف نصي', other: 'ملف',
-  };
+  // File-type classification (category, icon, label, preview capability)
+  // all comes from FileSupportPolicy (app/js/file-support-policy.js) — the
+  // single source of truth shared with the backend, the uploader, and
+  // every other screen that shows a file icon/label. Do not reintroduce a
+  // local extension map here.
+  function extOf(name) { return FileSupportPolicy.getExtension(name); }
+  function categoryOf(name) { return FileSupportPolicy.getCategory(name); }
 
   // Resolves an OOXML relationship Target (e.g. "../media/image1.png") against
   // the directory of the file that referenced it (e.g. "ppt/slides"), the way
@@ -55,12 +37,6 @@ const Viewer = (function () {
     }
     return baseParts.join('/');
   }
-
-  function extOf(name) {
-    const parts = String(name).split('.');
-    return parts.length > 1 ? parts.pop().toLowerCase() : '';
-  }
-  function categoryOf(name) { return EXT_MAP[extOf(name)] || 'other'; }
 
   function fmtBytes(n) {
     if (n == null) return '—';
@@ -182,6 +158,9 @@ const Viewer = (function () {
   function onKeydown(e) {
     if (!dom || !dom.overlay.classList.contains('open')) return;
     if (e.key === 'Escape') {
+      // Presentation mode: ESC exits fullscreen/presentation and returns
+      // to the normal viewer, it does not close the file entirely.
+      if (state.presentationMode && document.fullscreenElement) { document.exitFullscreen().catch(() => {}); return; }
       if (state.searchOpen) closeSearch(); else close();
     } else if (e.key === 'f' || e.key === 'F') {
       if (document.activeElement !== dom.searchInput) toggleFullscreen();
@@ -191,6 +170,21 @@ const Viewer = (function () {
       if (document.activeElement !== dom.searchInput) { zoomBy(0.15); e.preventDefault(); }
     } else if (e.key === '-') {
       if (document.activeElement !== dom.searchInput) { zoomBy(-0.15); e.preventDefault(); }
+    } else if (state.presentationMode && document.activeElement !== dom.searchInput) {
+      // PowerPoint-style slide navigation: arrows, PageUp/PageDown,
+      // Home/End, and Space for next — matches requested presentation
+      // controls exactly.
+      const nav = state.presentationGoTo;
+      if (!nav) return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        nav(state.presentationIndex + 1); e.preventDefault();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        nav(state.presentationIndex - 1); e.preventDefault();
+      } else if (e.key === 'Home') {
+        nav(0); e.preventDefault();
+      } else if (e.key === 'End') {
+        nav(state.presentationNumSlides - 1); e.preventDefault();
+      }
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       if (state.category === 'image' && document.activeElement !== dom.searchInput) {
         navigateGallery(e.key === 'ArrowLeft' ? -1 : 1);
@@ -219,8 +213,8 @@ const Viewer = (function () {
     }
 
     dom.filename.textContent = file.name;
-    dom.subtitle.textContent = `${TYPE_LABEL[state.category] || 'ملف'} · ${fmtBytes(file.size ?? file.bytes)}`;
-    dom.icon.textContent = TYPE_ICON[state.category] || '📎';
+    dom.subtitle.textContent = `${FileSupportPolicy.labelFor(file.name)} · ${fmtBytes(file.size ?? file.bytes)}`;
+    dom.icon.textContent = FileSupportPolicy.iconFor(file.name);
     dom.dlBtn.href = state.url;
     dom.dlBtn.download = file.name;
     dom.toolbar.innerHTML = '';
@@ -236,14 +230,28 @@ const Viewer = (function () {
 
     dom.overlay.classList.add('open');
 
-    const renderers = {
-      image: renderImage, pdf: renderPdf, video: renderVideo, audio: renderAudio,
-      word: renderWordDocx, 'word-legacy': renderUnsupportedOffice,
-      excel: renderExcel, 'excel-legacy': renderUnsupportedOffice, csv: renderExcel,
-      ppt: renderPptx, 'ppt-legacy': renderUnsupportedOffice,
-      text: renderText, other: renderFallback,
+    // Which render function handles a file is driven by its policy entry's
+    // preview.engine (FileSupportPolicy), not a hand-maintained per-category
+    // table — adding/changing a format's preview capability only requires
+    // editing app/js/file-support-policy.js.
+    const renderersByEngine = {
+      'pdfjs': renderPdf,
+      'native-image': renderImage,
+      'native-media-video': renderVideo,
+      'native-media-audio': renderAudio,
+      'mammoth': renderWordDocx,
+      'sheetjs': renderExcel,
+      'office-conversion': renderPptx,
+      'plaintext': renderText,
     };
-    (renderers[state.category] || renderFallback)();
+    const policy = FileSupportPolicy.getPolicy(state.file.name);
+    if (policy && policy.preview.supported && renderersByEngine[policy.preview.engine]) {
+      renderersByEngine[policy.preview.engine]();
+    } else if (policy && policy.fallback === 'external-open') {
+      renderUnsupportedOffice();
+    } else {
+      renderFallback();
+    }
   }
 
   function close() {
@@ -259,6 +267,10 @@ const Viewer = (function () {
     if (state.pdfDoc && typeof PDFEngine !== 'undefined') PDFEngine.destroyDocument(state.pdfDoc);
     else if (state.pdfDoc) { try { state.pdfDoc.destroy(); } catch {} }
     state.pdfDoc = null;
+    if (state.presentationCleanup) { try { state.presentationCleanup(); } catch {} }
+    if (state.presentationDoc && typeof PDFEngine !== 'undefined') PDFEngine.destroyDocument(state.presentationDoc);
+    state.presentationDoc = null;
+    state.presentationMode = false;
     if (state.mediaCleanup) { try { state.mediaCleanup(); } catch {} }
     const v = dom && dom.content.querySelector('video, audio');
     if (v) { try { v.pause(); v.src = ''; v.load(); } catch {} }
@@ -278,7 +290,7 @@ const Viewer = (function () {
     dom.infoPanel.innerHTML = `
       <h4>معلومات الملف</h4>
       <div class="dv-info-row"><span class="k">الاسم</span><span class="v">${esc(f.name)}</span></div>
-      <div class="dv-info-row"><span class="k">النوع</span><span class="v">${esc(TYPE_LABEL[state.category] || '—')}</span></div>
+      <div class="dv-info-row"><span class="k">النوع</span><span class="v">${esc(FileSupportPolicy.labelFor(f.name))}</span></div>
       <div class="dv-info-row"><span class="k">الحجم</span><span class="v">${fmtBytes(f.size ?? f.bytes)}</span></div>
       <div class="dv-info-row"><span class="k">آخر تعديل</span><span class="v">${fmtDate(f.modified || f.mtime)}</span></div>
       <div class="dv-info-row"><span class="k">رمز المؤشر</span><span class="v">${esc(state.code)}</span></div>
@@ -1034,7 +1046,184 @@ const Viewer = (function () {
   // content preview, not a pixel-accurate layout renderer, since no
   // real PowerPoint rendering engine is available client-side.)
   // ══════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════
+  // PPTX — dispatches to a real slide-layout render (via headless
+  // LibreOffice → PDF → PDFEngine, see officeConversionService.js on the
+  // server) when available, falling back to the old text/image
+  // extraction otherwise. See PPTX-PRESENTATION-MODE-REPORT.md for why:
+  // the extraction approach can never preserve backgrounds, exact text
+  // positioning, shapes, or table/chart layout — it was only ever a
+  // "what's roughly in this deck" preview, not a faithful one.
+  // ══════════════════════════════════════════════════════════
   async function renderPptx() {
+    showLoading('جارٍ تجهيز العرض التقديمي…');
+    let capability;
+    try {
+      capability = await (await fetch(`${VAPI}/api/office-conversion/capability`)).json();
+    } catch {
+      capability = { available: false };
+    }
+    if (!capability.available) return renderPptxExtraction('no-engine');
+
+    try {
+      const convRes = await fetch(`${VAPI}/api/office-conversion/${state.code}/${encodeURIComponent(state.file.name)}`, { method: 'POST' });
+      const convBody = await convRes.json();
+      if (!convBody.ok) return renderPptxExtraction('conversion-failed');
+      const pdfUrl = `${VAPI}/api/office-conversion/pdf/${convBody.cacheKey}`;
+      await renderPptxPresentation(pdfUrl);
+    } catch (err) {
+      console.error('[Viewer] PPTX conversion failed:', err);
+      renderPptxExtraction('conversion-failed');
+    }
+  }
+
+  // ── Real slide-layout PPTX rendering: one slide at a time, PowerPoint-
+  // style navigation, built on the same PDFEngine used for .pdf files. ──
+  async function renderPptxPresentation(pdfUrl) {
+    showLoading('جارٍ تحميل الشرائح…');
+    if (typeof PDFEngine === 'undefined') return renderPptxExtraction('no-engine');
+
+    let doc;
+    try {
+      doc = await PDFEngine.openDocument({ url: pdfUrl });
+    } catch (err) {
+      console.error('[Viewer] presentation PDF open failed:', err);
+      return renderPptxExtraction('conversion-failed');
+    }
+    state.presentationDoc = doc;
+    state.presentationMode = true;
+    state.presentationIndex = 0;
+    state.presentationZoom = 1; // 1 = fit-to-stage; user can zoom beyond that
+    const numSlides = doc.numPages;
+
+    dom.content.className = 'dv-content dv-content-flush';
+    dom.content.innerHTML = `
+      <div class="dv-pptx-wrap">
+        <div class="dv-slides-rail" id="dv-pptx-rail"></div>
+        <div class="dv-pptx-stage-area">
+          <div class="dv-pptx-stage" id="dv-pptx-stage"><canvas id="dv-pptx-canvas"></canvas></div>
+          <div class="dv-pptx-navbar">
+            <button class="dv-btn dv-btn-icon-only" id="dv-pptx-first" title="الشريحة الأولى (Home)">⏮</button>
+            <button class="dv-btn dv-btn-icon-only" id="dv-pptx-prev" title="السابقة (◀)">◀</button>
+            <span class="dv-pptx-counter" id="dv-pptx-counter">1 / ${numSlides}</span>
+            <button class="dv-btn dv-btn-icon-only" id="dv-pptx-next" title="التالية (▶)">▶</button>
+            <button class="dv-btn dv-btn-icon-only" id="dv-pptx-last" title="الشريحة الأخيرة (End)">⏭</button>
+          </div>
+        </div>
+      </div>`;
+
+    const rail = dom.content.querySelector('#dv-pptx-rail');
+    const stage = dom.content.querySelector('#dv-pptx-stage');
+    const canvas = dom.content.querySelector('#dv-pptx-canvas');
+    const counterEl = dom.content.querySelector('#dv-pptx-counter');
+
+    dom.statusLeft.textContent = `${numSlides} شريحة`;
+    setInfoExtra(`<div class="dv-info-row"><span class="k">عدد الشرائح</span><span class="v">${numSlides}</span></div>
+      <div class="dv-info-row"><span class="k">وضع العرض</span><span class="v" style="font-size:.68rem;font-weight:500">تصيير كامل عبر LibreOffice — مطابق للتصميم الأصلي</span></div>`);
+
+    // Toolbar: zoom + fit + presentation(fullscreen) — fullscreen itself
+    // reuses the existing whole-overlay fullscreen button/mechanism
+    // (dom.fsBtn / toggleFullscreen), already wired up in open().
+    addZoomControls((delta) => {
+      if (delta === 0) state.presentationZoom = 1;
+      else state.presentationZoom = Math.max(0.4, Math.min(3, state.presentationZoom + delta));
+      updateZoomPct();
+      renderCurrentSlide();
+    }, state.presentationZoom);
+    addSep();
+    addToolBtn('🖥 عرض تقديمي', 'وضع العرض التقديمي (ملء الشاشة)', () => toggleFullscreen(), {});
+
+    async function renderSlideToCanvas(index, targetCanvas, scaleOverride) {
+      const page = await doc.getPage(index + 1);
+      const baseViewport = page.getViewport({ scale: 1, rotation: 0 });
+      const availW = stage.clientWidth - 40;
+      const availH = stage.clientHeight - 40;
+      const fitScale = Math.min(availW / baseViewport.width, availH / baseViewport.height);
+      const scale = (scaleOverride || fitScale) * (scaleOverride ? 1 : state.presentationZoom);
+      const viewport = page.getViewport({ scale, rotation: 0 });
+      // Off-DOM render then attach — same contract as PDFEngine.renderPageToCanvas
+      // everywhere else (see its header comment): a canvas already attached to
+      // the document can corrupt glyph positioning for some embedded fonts.
+      const fresh = document.createElement('canvas');
+      await PDFEngine.renderPageToCanvas(page, fresh, viewport).promise;
+      targetCanvas.replaceWith(fresh);
+      fresh.id = targetCanvas.id;
+      return fresh;
+    }
+
+    let currentCanvas = canvas;
+    async function renderCurrentSlide() {
+      counterEl.textContent = `${state.presentationIndex + 1} / ${numSlides}`;
+      rail.querySelectorAll('.dv-slide-thumb').forEach((t, ti) => t.classList.toggle('active', ti === state.presentationIndex));
+      const activeThumb = rail.querySelector('.dv-slide-thumb.active');
+      if (activeThumb) activeThumb.scrollIntoView({ block: 'nearest' });
+      currentCanvas = await renderSlideToCanvas(state.presentationIndex, currentCanvas);
+    }
+
+    function goTo(index) {
+      state.presentationIndex = Math.max(0, Math.min(numSlides - 1, index));
+      renderCurrentSlide();
+    }
+    dom.content.querySelector('#dv-pptx-first').addEventListener('click', () => goTo(0));
+    dom.content.querySelector('#dv-pptx-prev').addEventListener('click', () => goTo(state.presentationIndex - 1));
+    dom.content.querySelector('#dv-pptx-next').addEventListener('click', () => goTo(state.presentationIndex + 1));
+    dom.content.querySelector('#dv-pptx-last').addEventListener('click', () => goTo(numSlides - 1));
+    state.presentationGoTo = goTo;
+    state.presentationNumSlides = numSlides;
+
+    // Mouse UX matching the requested "PowerPoint presentation mode" feel:
+    // double-click enters/exits fullscreen (same convention already used
+    // for video/audio in this viewer); a plain click on the slide while
+    // already in fullscreen advances to the next slide (standard
+    // presenter-mode click-to-advance), without stealing clicks in the
+    // normal (non-fullscreen) document view.
+    stage.addEventListener('dblclick', () => toggleFullscreen());
+    stage.addEventListener('click', () => { if (document.fullscreenElement) goTo(state.presentationIndex + 1); });
+
+    // Thumbnail rail — rendered lazily/on-demand (not all up front) so a
+    // 100+ slide deck doesn't block on generating every thumbnail at once.
+    const thumbEls = [];
+    for (let i = 0; i < numSlides; i++) {
+      const t = document.createElement('div');
+      t.className = 'dv-slide-thumb';
+      t.innerHTML = `<span class="dv-slide-thumb-num">${i + 1}</span>`;
+      t.addEventListener('click', () => goTo(i));
+      rail.appendChild(t);
+      thumbEls.push(t);
+    }
+    const thumbObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const idx = thumbEls.indexOf(entry.target);
+        if (idx === -1 || entry.target.dataset.rendered) return;
+        entry.target.dataset.rendered = '1';
+        thumbObserver.unobserve(entry.target);
+        doc.getPage(idx + 1).then(async (page) => {
+          const vp = page.getViewport({ scale: 0.14 });
+          const c = document.createElement('canvas');
+          await PDFEngine.renderPageToCanvas(page, c, vp).promise;
+          entry.target.appendChild(c);
+        }).catch(() => {});
+      });
+    }, { root: rail, rootMargin: '200px 0px 200px 0px' });
+    thumbEls.forEach((t) => thumbObserver.observe(t));
+
+    state.presentationCleanup = () => {
+      thumbObserver.disconnect();
+      window.removeEventListener('resize', onResize);
+    };
+    function onResize() { renderCurrentSlide(); }
+    window.addEventListener('resize', onResize);
+
+    await renderCurrentSlide();
+    updateZoomPct();
+  }
+
+  // ── Fallback: the original JSZip/DOMParser text+image extraction. Kept
+  // for machines with no LibreOffice installed, and as a safety net if
+  // conversion fails on a specific file — never the primary path anymore.
+  // `reason` drives which banner explains the reduced fidelity.
+  async function renderPptxExtraction(reason) {
     showLoading('جارٍ تحليل عرض PowerPoint…');
     if (typeof JSZip === 'undefined') { showError('تعذّر تحميل عارض العروض', 'مكوّن العرض غير متاح.'); return; }
     try {
@@ -1126,10 +1315,46 @@ const Viewer = (function () {
       });
       draw(0);
       addSearchToggle();
+
+      // Explain the reduced fidelity — this is a fallback (text/images
+      // only, no real layout), not the primary PPTX renderer. See
+      // renderPptx() above for when this path is used instead of the
+      // real LibreOffice-backed presentation mode.
+      const banner = document.createElement('div');
+      banner.className = 'dv-pptx-fallback-banner';
+      if (reason === 'no-engine') {
+        banner.innerHTML = `⚠️ هذا عرض مبسّط للنص والصور فقط، وليس تصميم الشرائح الأصلي. لعرض الشرائح بتصميمها الكامل، يلزم تثبيت LibreOffice على هذا الجهاز.`;
+      } else {
+        banner.innerHTML = `⚠️ تعذّر إنشاء معاينة مطابقة للتصميم الأصلي لهذا الملف. هذا عرض مبسّط للنص والصور فقط. <button class="dv-btn" id="dv-pptx-retry" style="margin-inline-start:8px">إعادة المحاولة</button>`;
+      }
+      dom.content.prepend(banner);
+      const retryBtn = banner.querySelector('#dv-pptx-retry');
+      if (retryBtn) retryBtn.addEventListener('click', () => renderPptx());
     } catch (err) {
       console.error(err);
-      showError('تعذّر عرض الشرائح داخل التطبيق', 'يمكن تحميل الملف وفتحه في برنامج العروض التقديمية.');
+      showPptxFailure();
     }
+  }
+
+  // Professional failure state (never a blank/broken page): explains what
+  // happened in plain language, and offers Retry + "open in PowerPoint /
+  // the OS default app" instead of a dead end.
+  function showPptxFailure() {
+    dom.content.className = 'dv-content dv-content-center';
+    dom.content.innerHTML = `
+      <div class="dv-state">
+        <div class="dv-state-icon">⚠️</div>
+        <div class="dv-state-title">تعذّر إنشاء معاينة لهذا العرض التقديمي</div>
+        <div class="dv-state-sub">يمكنك إعادة المحاولة أو فتح الملف الأصلي في برنامج خارجي.</div>
+        <div style="margin-top:14px;display:flex;gap:8px;justify-content:center">
+          <button class="dv-btn" id="dv-pptx-fail-retry">إعادة المحاولة</button>
+          <button class="dv-btn" id="dv-pptx-fail-open">فتح خارجيًا</button>
+        </div>
+      </div>`;
+    dom.content.querySelector('#dv-pptx-fail-retry').addEventListener('click', () => renderPptx());
+    dom.content.querySelector('#dv-pptx-fail-open').addEventListener('click', () => {
+      fetch(`${VAPI}/api/open-file/${state.code}/${encodeURIComponent(state.file.name)}`, { method: 'POST' }).catch(() => {});
+    });
   }
 
   // ══════════════════════════════════════════════════════════

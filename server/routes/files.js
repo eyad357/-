@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const router = express.Router();
 const evidenceService = require('../services/evidenceService');
+const FileSupportPolicy = require('../../app/js/file-support-policy.js');
 
 const rawBody = express.raw({ type: '*/*', limit: '200mb' });
 
@@ -40,18 +41,44 @@ router.delete('/file/:code/:name', async (req, res) => {
 
 // POST /api/upload/:code and /api/upload-raw/:code — both behave the same:
 // raw request body = file bytes, x-filename header = original name.
+//
+// Validation is authoritative here (never trust the client) and goes
+// through FileSupportPolicy — the single source of truth for which
+// extensions are allowed, their size limits, and (where practical) their
+// expected magic bytes. See FILE-SUPPORT-ARCHITECTURE-REPORT.md.
 async function handleUpload(req, res) {
   const { evidenceRoot, store } = req.app.locals;
   const code = req.params.code;
   const dir = evidenceService.folderForCode(evidenceRoot, code);
   if (!dir) return res.status(400).json({ error: 'مؤشر غير معروف' });
 
-  fs.mkdirSync(dir, { recursive: true });
   const filename = path.basename(decodeFilename(req.headers['x-filename'], `file-${Date.now()}`));
+  const body = req.body || Buffer.alloc(0);
+
+  const verdict = FileSupportPolicy.classifyUpload({
+    filename,
+    size: body.length,
+    headerBytes: body.length ? body.subarray(0, 16) : null,
+  });
+  if (!verdict.ok) {
+    store.addAudit({
+      action: 'file_upload_rejected', target: filename, indicator: code,
+      details: `${verdict.reason}: ${verdict.friendlyDetail}`,
+    });
+    return res.status(415).json({
+      error: verdict.friendlyTitle,
+      detail: verdict.friendlyDetail,
+      reason: verdict.reason,
+      extension: verdict.ext,
+      allowedExtensions: FileSupportPolicy.allowedExtensionsList(),
+    });
+  }
+
+  fs.mkdirSync(dir, { recursive: true });
   const destPath = path.join(dir, filename);
 
   try {
-    fs.writeFileSync(destPath, req.body);
+    fs.writeFileSync(destPath, body);
     store.addAudit({ action: 'file_uploaded', target: filename, indicator: code });
     res.json({ success: true, filename });
   } catch (err) {
@@ -61,6 +88,73 @@ async function handleUpload(req, res) {
 
 router.post('/upload/:code', rawBody, handleUpload);
 router.post('/upload-raw/:code', rawBody, handleUpload);
+
+// GET /api/file-policy — the same FileSupportPolicy table the server
+// validates against, exposed so the frontend never has to hardcode its
+// own copy of what's allowed (used for client-side pre-upload checks and
+// the "supported formats" messaging shown to the user).
+router.get('/file-policy', (req, res) => {
+  res.json({
+    extensions: FileSupportPolicy.EXTENSIONS,
+    categories: FileSupportPolicy.CATEGORIES,
+    allowedExtensions: FileSupportPolicy.allowedExtensionsList(),
+  });
+});
+
+// ══════════════════════════════════════════════════════════
+// OFFICE CONVERSION (PPTX visual-fidelity presentation mode)
+// ──────────────────────────────────────────────────────────
+// Converts a PPTX to PDF via headless LibreOffice (if installed on this
+// machine — see server/services/officeConversionService.js) so it can be
+// rendered through the existing, already-hardened PDFEngine pipeline
+// instead of the old JSZip/DOMParser text-extraction approach. See
+// PPTX-PRESENTATION-MODE-REPORT.md for the full architecture rationale.
+// ══════════════════════════════════════════════════════════
+const officeConversionService = require('../services/officeConversionService');
+const pathsModule = require('../../electron/utils/paths');
+
+// GET /api/office-conversion/capability — lets the frontend know up front
+// whether full-fidelity PPTX preview is possible on this machine, so it
+// can decide between the presentation-mode viewer and the text/image
+// extraction fallback without a failed round trip first.
+router.get('/office-conversion/capability', async (req, res) => {
+  res.json({ available: await officeConversionService.isAvailable() });
+});
+
+// POST /api/office-conversion/:code/:name — converts the given evidence
+// file to PDF (caching the result) and returns a URL the frontend can
+// hand straight to PDFEngine. Synchronous (the frontend shows a loading
+// state) since a single-presentation conversion is normally a few
+// seconds; see officeConversionService's CONVERT_TIMEOUT_MS for the hard
+// ceiling on a pathological file.
+router.post('/office-conversion/:code/:name', async (req, res) => {
+  const { evidenceRoot } = req.app.locals;
+  const sourcePath = await evidenceService.getFilePath(evidenceRoot, req.params.code, req.params.name);
+  if (!sourcePath || !fs.existsSync(sourcePath)) {
+    return res.status(404).json({ ok: false, reason: 'SOURCE_MISSING', detail: 'الملف غير موجود' });
+  }
+  const result = await officeConversionService.convertToPdf(sourcePath, pathsModule.getOfficeConversionCacheDir());
+  if (!result.ok) return res.status(422).json(result);
+  // Hand back an opaque cache key rather than a filesystem path — the
+  // download route below re-derives the same path from it, and never
+  // exposes the real cache directory layout to the client.
+  const cacheKey = path.basename(result.pdfPath, '.pdf');
+  res.json({ ok: true, cacheKey });
+});
+
+// GET /api/office-conversion/pdf/:cacheKey — serves a previously-converted
+// PDF by its opaque cache key. cacheKey is validated as a bare hex
+// filename component (produced only by convertToPdf's own sha1 hash) so
+// this can never be used to read an arbitrary path.
+router.get('/office-conversion/pdf/:cacheKey', (req, res) => {
+  const cacheKey = req.params.cacheKey;
+  if (!/^[a-f0-9]{40}$/.test(cacheKey)) return res.status(400).json({ error: 'مفتاح غير صالح' });
+  const pdfPath = path.join(pathsModule.getOfficeConversionCacheDir(), `${cacheKey}.pdf`);
+  if (!fs.existsSync(pdfPath)) return res.status(404).json({ error: 'غير موجود' });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.sendFile(pdfPath);
+});
+
 
 // POST /api/open-folder/:code — reveals the indicator folder in the OS file explorer
 router.post('/open-folder/:code', async (req, res) => {

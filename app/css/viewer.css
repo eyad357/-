@@ -187,6 +187,36 @@ mark.dv-hit.dv-hit-current{ background:#ff6f00; color:#fff; }
 .dv-slide-canvas ul{ padding-inline-start:22px; font-size:.85rem; line-height:1.7; }
 .dv-slide-canvas img{ max-width:100%; max-height:180px; object-fit:contain; align-self:center; }
 .dv-slide-empty-text{ color:var(--muted); font-size:.8rem; font-style:italic; }
+.dv-slide-thumb canvas{ width:100%; display:block; border-radius:4px; }
+
+/* ── PPTX presentation mode (real slide-layout rendering via
+   PDFEngine, see renderPptxPresentation in viewer.js) ─────── */
+.dv-pptx-wrap{ display:flex; width:100%; height:100%; }
+.dv-pptx-stage-area{ flex:1 1 auto; display:flex; flex-direction:column; min-width:0; }
+.dv-pptx-stage{
+  flex:1 1 auto; display:flex; align-items:center; justify-content:center;
+  padding:20px; overflow:hidden; background:#0e1826; position:relative; cursor:default;
+}
+.dv-pptx-stage canvas{ box-shadow:0 6px 30px rgba(0,0,0,.5); border-radius:2px; max-width:100%; max-height:100%; }
+/* Fullscreen presentation mode: neutral/black background, no accidental
+   scrolling, slide stays centered with correct aspect ratio (canvas is
+   sized in JS from the actual page viewport, never stretched via CSS). */
+.dv-overlay:fullscreen .dv-pptx-stage{ background:#000; padding:0; cursor:pointer; }
+.dv-overlay:fullscreen .dv-pptx-navbar,
+.dv-overlay:fullscreen .dv-slides-rail{ display:none; }
+.dv-pptx-navbar{
+  flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:14px;
+  padding:10px; background:#0b1d30; border-top:1px solid rgba(255,255,255,.08);
+  direction:ltr; /* prev/next controls always read left→right, like every
+                    presentation/media player, regardless of app language —
+                    otherwise RTL flex reordering flips button ORDER but not
+                    the ◀/▶ glyphs, so arrows end up pointing the wrong way. */
+}
+.dv-pptx-counter{ color:#fff; font-size:.8rem; font-weight:700; min-width:70px; text-align:center; direction:ltr; }
+.dv-pptx-fallback-banner{
+  flex:0 0 auto; background:#3a2f0e; color:#ffd54f; font-size:.72rem; line-height:1.6;
+  padding:8px 16px; border-bottom:1px solid rgba(255,255,255,.08);
+}
 
 /* ── Media (video/audio) viewer ──────────────────────────── */
 .dv-media-wrap{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; }
